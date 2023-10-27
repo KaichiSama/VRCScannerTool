@@ -15,101 +15,18 @@ PATH = os.path.join(user_directory, "AppData", "LocalLow", "VRChat", "VRChat", "
 # Variable pour mettre en pause le programme
 program_paused = False
 
-def get_ids_from_file(filepath, pattern):
-    ids_found = []
-    try:
-        with open(filepath, 'r', encoding="utf-8", errors='ignore') as f:
-            data = f.read()
-            ids_found = re.findall(pattern, data)
-    except Exception as e:
-        print(f"Error reading file {filepath}. Error message: {e}")
-    return ids_found
+def animated_progress_bar(total, length=40):
+    for i in range(total):
+        progress = (i + 1) / total
+        bar_length = int(length * progress)
+        bar = "=" * bar_length + " " * (length - bar_length)
+        sys.stdout.write(f"\r[{bar}] {int(progress * 100)}%")
+        sys.stdout.flush()
+        time.sleep(0.1)
 
-def create_directory(directory):
-    try:
-        os.makedirs(directory, exist_ok=True)
-    except Exception as e:
-        print(f"Error creating directory {directory}. Error message: {e}")
-
-def display_world_info():
-    print("\nDisplaying World Info in Your Database:")
-    for root, dirs, files in os.walk("VRCW"):
-        for file in files:
-            if file.endswith(".vrcw"):
-                world_id = os.path.splitext(file)[0]
-                print(f"World ID: {world_id}")
-
-def display_avatar_info():
-    print("\nDisplaying Avatar Info in Your Database:")
-    for root, dirs, files in os.walk("VRCA"):
-        for file in files:
-            if file.endswith(".vrca"):
-                avatar_id = os.path.splitext(file)[0]
-                print(f"Avatar ID: {avatar_id}")
-
-def display_all_ids():
-    for root, dirs, files in os.walk(PATH):
-        for file in files:
-            if file == '__data':
-                filepath = os.path.join(root, file)
-                try:
-                    with open(filepath, 'r', encoding="utf-8", errors='ignore') as f:
-                        data = f.read()
-                        avtr_ids_found = re.findall(r"avtr_[a-f0-9\-]{36}", data)
-                        wrld_ids_found = re.findall(r"wrld_[a-f0-9\-]{36}", data)
-
-                        if avtr_ids_found or wrld_ids_found:
-                            print(f"\nFile Analysis: {filepath}")
-                            for avtr_id in set(avtr_ids_found):
-                                print(f"{datetime.datetime.now()} - {Fore.GREEN}Avatar ID : {avtr_id}{Style.RESET_ALL}")
-                            for wrld_id in set(wrld_ids_found):
-                                print(f"{datetime.datetime.now()} - {Fore.GREEN}World ID : {wrld_id}{Style.RESET_ALL}")
-                except Exception as e:
-                    print(f"Error reading file {filepath}. Error message: {e}")
-
-def search_for_id(search_id):
-    for root, dirs, files in os.walk(PATH):
-        for file in files:
-            if file == '__data':
-                filepath = os.path.join(root, file)
-                try:
-                    with open(filepath, 'r', encoding="utf-8", errors='ignore') as f:
-                        data = f.read()
-                        if search_id in data:
-                            print(f"{datetime.datetime.now()} - ID {search_id} found in: {filepath}")
-                except Exception as e:
-                    print(f"Error reading file {filepath}. Error message: {e}")
-
-def display_ids_filtered(option):
-    pattern = r"avtr_[a-f0-9\-]{36}" if option == "Avatar" else r"wrld_[a-f0-9\-]{36}"
-
-    if option == "Avatar":
-        print("\nDisplaying Avatar IDs:")
-    else:
-        print("\nDisplaying World IDs:")
-
-    found_ids = set()
-
-    for root, dirs, files in os.walk(PATH):
-        for file in files:
-            if file == '__data':
-                filepath = os.path.join(root, file)
-                try:
-                    with open(filepath, 'r', encoding="utf-8", errors='ignore') as f:
-                        data = f.read()
-                        ids_found = re.findall(pattern, data)
-
-                        if ids_found:
-                            print(f"File Analysis: {filepath}")
-                            for id_ in set(ids_found):
-                                found_ids.add(id_)
-                                print(f"{datetime.datetime.now()} - {Fore.YELLOW}{option} ID : {id_}{Style.RESET_ALL}")
-
-                except Exception as e:
-                    print(f"Error reading file {filepath}. Error message: {e}")
-
-    if not found_ids:
-        print(f"No {option} ID found in the analyzed files.")
+# Utilisation de l'animation
+animated_progress_bar(50)  # Par exemple, pour afficher une barre de progression de 50 étapes
+print(f"{Fore.RED}\nNasa get Hacked by Kaichi-Sama.{Style.RESET_ALL}")
 
 def save_vrcw_vrca_continuous():
     # Create "VRCW" and "VRCA" directories if they don't exist
@@ -158,6 +75,72 @@ def save_vrcw_vrca_continuous():
     # Reset the console color to default
     print(Style.RESET_ALL)
 
+def get_ids_from_file(filepath, pattern):
+    ids_found = []
+    try:
+        with open(filepath, 'r', encoding="utf-8", errors='ignore') as f:
+            data = f.read()
+            ids_found = re.findall(pattern, data)
+    except Exception as e:
+        print(f"Error reading file {filepath}. Error message: {e}")
+    return ids_found
+
+def create_directory(directory):
+    try:
+        os.makedirs(directory, exist_ok=True)
+    except Exception as e:
+        print(f"Error creating directory {directory}. Error message: {e}")
+
+def display_all_ids():
+    print(f"\n{Fore.GREEN}♥ Kaichi-Sama Menu UwU ♥{Style.RESET_ALL}:")
+    print("1. Display All IDs in Cache")
+    print("2. Search an ID in Cache")
+    print("3. Search ID in Your Database")
+    print("4. Filtered Search")
+    print("5. Save VRCW and VRCA")
+    print("6. Exit")
+
+    print("\nDisplaying All IDs in Your Cache:")
+    for root, dirs, files in os.walk(PATH):
+        for file in files:
+            if file == '__data':
+                filepath = os.path.join(root, file)
+                try:
+                    with open(filepath, 'r', encoding="utf-8", errors='ignore') as f:
+                        data = f.read()
+                        avtr_ids_found = re.findall(r"(avtr_[a-f0-9\-]{36})", data)
+                        wrld_ids_found = re.findall(r"(wrld_[a-f0-9\-]{36})", data)
+
+                        if avtr_ids_found or wrld_ids_found:
+                            print(f"\n{Fore.YELLOW}File Analysis: {Fore.LIGHTCYAN_EX}{filepath}{Style.RESET_ALL}")
+                            for avtr_id in set(avtr_ids_found):
+                                print(f"{datetime.datetime.now()} - {Fore.LIGHTYELLOW_EX}Avatar ID : {Fore.GREEN}{avtr_id}{Style.RESET_ALL}")
+                            for wrld_id in set(wrld_ids_found):
+                                print(f"{datetime.datetime.now()} - {Fore.LIGHTMAGENTA_EX}World ID : {Fore.GREEN}{wrld_id}{Style.RESET_ALL}")
+                except Exception as e:
+                    print(f"Error reading file {filepath}. Error message: {e}")
+
+def search_in_cache(search_id):
+    found_in_cache = False
+
+    for root, dirs, files in os.walk(PATH):
+        for file in files:
+            if file == '__data':
+                filepath = os.path.join(root, file)
+                try:
+                    with open(filepath, 'r', encoding="utf-8", errors='ignore') as f:
+                        data = f.read()
+                        if search_id in data:
+                            print(f"{datetime.datetime.now()} - ID {search_id} found in: {Fore.LIGHTCYAN_EX}{filepath}{Style.RESET_ALL}")
+                            found_in_cache = True
+                except Exception as e:
+                    print(f"Error reading file {filepath}. Error message: {e}")
+
+    if found_in_cache:
+        print(f"{Fore.GREEN}Une correspondance a été trouvée.{Style.RESET_ALL}")
+    else:
+        print(f"{Fore.RED}Aucune correspondance n'a été trouvée.{Style.RESET_ALL}")
+
 def search_id_in_database(search_id):
     found_in_vrca = False
     found_in_vrcw = False
@@ -181,42 +164,75 @@ def search_id_in_database(search_id):
     if not found_in_vrca and not found_in_vrcw:
         print(f"{Fore.RED}Aucune correspondance trouvée.{Style.RESET_ALL}")
 
-# Ajouter "Powered by Kawaii Squad" en rose
-print(f"{Fore.LIGHTMAGENTA_EX}Powered by Kawaii Squad{Style.RESET_ALL}")
+def display_ids_filtered(option):
+    if option == "World":
+        folder = "VRCW"
+        entity = "World"
+    elif option == "Avatar":
+        folder = "VRCA"
+        entity = "Avatar"
+    else:
+        print("Invalid option, please try again.")
+        return
+
+    print(f"\nDisplaying {entity} Info in Your Database:")
+    for root, dirs, files in os.walk(folder):
+        for file in files:
+            if file.endswith(f".{folder.lower()}"):
+                entity_id = os.path.splitext(file)[0]
+                print(f"{entity} ID: {entity_id}")
+
+def display_world_info():
+    print("\nDisplaying World Info in Your Database:")
+    for root, dirs, files in os.walk("VRCW"):
+        for file in files:
+            if file.endswith(".vrcw"):
+                world_id = os.path.splitext(file)[0]
+                print(f"World ID: {world_id}")
+
+def display_avatar_info():
+    print("\nDisplaying Avatar Info in Your Database:")
+    for root, dirs, files in os.walk("VRCA"):
+        for file in files:
+            if file.endswith(".vrca"):
+                avatar_id = os.path.splitext(file)[0]
+                print(f"Avatar ID: {avatar_id}")
 
 def main():
     while True:
         if not program_paused:
-            print(f"\n{Fore.GREEN}Kaichi Menu UwU:{Style.RESET_ALL}")
-            print("1. Display World Info in Your Database")
-            print("2. Display Avatar Info in Your Database")
-            print("3. Filtered Search")
-            print("4. Save VRCW and VRCA")
-            print("5. Search ID in Your Database")
+            print(f"{Fore.LIGHTMAGENTA_EX}Powered by Kawaii Squad{Style.RESET_ALL}")
+            print(f"\n{Fore.GREEN}♥ Kaichi-Sama Menu UwU ♥{Style.RESET_ALL}:")
+            print("1. Display All IDs in Cache")
+            print("2. Search an ID in Cache")
+            print("3. Search ID in Your Database")
+            print("4. Filtered Search")
+            print("5. Save VRCW and VRCA")
             print("6. Exit")
             choice = input("Choose an option: ")
 
             if choice == "1":
-                display_world_info()
+                display_all_ids()
             elif choice == "2":
-                display_avatar_info()
+                search_id = input("\nEnter the ID you want to search for: ")
+                search_in_cache(search_id)
             elif choice == "3":
+                search_id = input("\nEnter the ID you want to search for: ")
+                search_id_in_database(search_id)
+            elif choice == "4":
                 print("\nSub-Menu:")
-                print("1. Display World Info in Your Database")
-                print("2. Display Avatar Info in Your Database")
+                print("1. Display World Info")
+                print("2. Display Avatar Info")
                 sub_choice = input("Choose an option: ")
 
                 if sub_choice == "1":
                     display_world_info()
                 elif sub_choice == "2":
-                    display_avatar_info()
+                    display_ids_filtered("Avatar")
                 else:
                     print("Invalid option, please try again.")
-            elif choice == "4":
-                save_vrcw_vrca_continuous()
             elif choice == "5":
-                search_id = input("\nEnter the ID you want to search for: ")
-                search_id_in_database(search_id)
+                save_vrcw_vrca_continuous()
             elif choice == "6":
                 print("\nGoodbye!")
                 break
