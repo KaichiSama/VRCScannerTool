@@ -5,6 +5,59 @@ import shutil
 from colorama import Fore, Style  # Import colorama for colored output
 import datetime
 import time
+import colorama
+import webbrowser as wb
+import keyboard  # Import keyboard module for keypress handling
+import requests
+import base64
+colorama.init()
+
+
+def get_base64_credentials(username, password):
+    credentials = f"{username}:{password}"
+    credentials_bytes = credentials.encode('ascii')
+    base64_bytes = base64.b64encode(credentials_bytes)
+    base64_credentials = base64_bytes.decode('ascii')
+    return base64_credentials
+
+def vrchat_login():
+    username = input("Entrez votre nom d'utilisateur VRChat: ")
+    password = input("Entrez votre mot de passe VRChat: ")
+    
+    base64_credentials = get_base64_credentials(username, password)
+    headers = {
+        "Authorization": f"Basic {base64_credentials}"
+    }
+    
+    url = "https://api.vrchat.cloud/api/1/auth/user"
+    response = requests.get(url, headers=headers)
+    
+    if response.status_code == 200:
+        print("Connexion réussie!")
+        print(response.json())
+    elif "2FA" in response.text or response.status_code == 401:
+        # Vous devriez vérifier la réponse exacte de VRChat pour savoir comment ils indiquent que la 2FA est requise.
+        two_factor_code = input("Entrez votre code de double authentification: ")
+        headers["X-VRChat-OTP"] = two_factor_code
+        response = requests.get(url, headers=headers)
+        if response.status_code == 200:
+            print("Connexion réussie!")
+            print(response.json())
+        else:
+            print("Échec de la connexion. Vérifiez vos identifiants, votre code de double authentification et réessayez.")
+            print("Status code:", response.status_code)
+            print("Response:", response.text)
+    else:
+        print("Échec de la connexion. Vérifiez vos identifiants et réessayez.")
+        print("Status code:", response.status_code)
+        print("Response:", response.text)
+
+if __name__ == "__main__":
+    continue_execution = input("Voulez-vous exécuter la connexion VRChat ? (Oui/Non): ")
+    if continue_execution.lower() == "oui":
+        vrchat_login()
+    else:
+        print("Programme terminé.")
 
 # Obtenez le répertoire de l'utilisateur actuel
 user_directory = os.path.expanduser("~")
@@ -36,6 +89,15 @@ def save_vrcw_vrca_continuous():
     processed_files = set()  # Pour garder une trace des fichiers déjà traités
 
     while True:  # Boucle infinie pour surveiller le dossier en continu
+        if program_paused:  # Vérifiez si le programme est en pause
+            print("Program paused. Press F1 to resume.")
+            while program_paused:
+                if keyboard.is_pressed('F1'):  # Attendez la touche F1 pour reprendre
+                    print("Program resumed.")
+                    break
+                time.sleep(1)
+            continue  # Reprendre la boucle
+
         for root, dirs, files in os.walk(PATH):
             for file in files:
                 if file == '__data':
@@ -142,25 +204,44 @@ def search_in_cache(search_id):
         print(f"{Fore.RED}Aucune correspondance n'a été trouvée.{Style.RESET_ALL}")
 
 def search_id_in_database(search_id):
-    found_in_vrca = False
-    found_in_vrcw = False
+    global program_paused  # Utilisez la variable globale pour la pause
 
-    for root, dirs, files in os.walk("VRCA"):
-        if f"{search_id}.vrca" in files:
-            found_in_vrca = True
-            vrca_file_path = os.path.join(root, f"{search_id}.vrca")
-            print(f"{Fore.GREEN}Correspondance trouvée dans VRCA !{Style.RESET_ALL}")
-            print(f"Accédez au fichier VRCA ici : file://{vrca_file_path}")
-            break
+    try:
+        while not program_paused:
+            # Votre code pour la recherche d'ID ici
+            pass
+    except KeyboardInterrupt:
+        print("Function interrupted by user (F1). Returning to main menu.")
+        return
 
+def display_ids_filtered(option):
+    if option == "World":
+        folder = "VRCW"
+        entity = "World"
+    elif option == "Avatar":
+        folder = "VRCA"
+        entity = "Avatar"
+    else:
+        print("Invalid option, please try again.")
+        return
+
+    print(f"\nDisplaying {entity} Info in Your Database:")
+    for root, dirs, files in os.walk(folder):
+        for file in files:
+            if file.endswith(f".{folder.lower()}"):
+                entity_id = os.path.splitext(file)[0]
+                print(f"{entity} ID: {entity_id}")
+
+def display_world_info():
+    print("\nDisplaying World Info in Your Database:")
     for root, dirs, files in os.walk("VRCW"):
-        if f"{search_id}.vrcw" in files:
-            found_in_vrcw = True
-            vrcw_file_path = os.path.join(root, f"{search_id}.vrcw")
-            print(f"{Fore.GREEN}Correspondance trouvée dans VRCW !{Style.RESET_ALL}")
-            print(f"Accédez au fichier VRCW ici : file://{vrcw_file_path}")
-            break
+        for file in files:
+            if file.endswith(".vrcw"):
+                world_id = os.path.splitext(file)[0]
+                print(f"World ID: {world_id}")
 
+<<<<<<< HEAD
+=======
     if not found_in_vrca and not found_in_vrcw:
         print(f"{Fore.RED}Aucune correspondance trouvée.{Style.RESET_ALL}")
 
@@ -190,6 +271,7 @@ def display_world_info():
                 world_id = os.path.splitext(file)[0]
                 print(f"World ID: {world_id}")
 
+>>>>>>> a4b8ef1080d1b15495605ad53314ae150b09e630
 def display_avatar_info():
     print("\nDisplaying Avatar Info in Your Database:")
     for root, dirs, files in os.walk("VRCA"):
@@ -199,6 +281,8 @@ def display_avatar_info():
                 print(f"Avatar ID: {avatar_id}")
 
 def main():
+    global program_paused
+
     while True:
         if not program_paused:
             print(f"{Fore.LIGHTMAGENTA_EX}Powered by Kawaii Squad{Style.RESET_ALL}")
@@ -208,7 +292,12 @@ def main():
             print("3. Search ID in Your Database")
             print("4. Filtered Search")
             print("5. Save VRCW and VRCA")
+<<<<<<< HEAD
+            print(f"{Fore.RED}6. DON'T CLICK HERE{Style.RESET_ALL}")  # Option 6 en rouge
+            print("7. Exit")  # Mettez à jour le numéro des options ici
+=======
             print("6. Exit")
+>>>>>>> a4b8ef1080d1b15495605ad53314ae150b09e630
             choice = input("Choose an option: ")
 
             if choice == "1":
@@ -233,13 +322,28 @@ def main():
                     print("Invalid option, please try again.")
             elif choice == "5":
                 save_vrcw_vrca_continuous()
+<<<<<<< HEAD
+            elif choice == "6":  # Ajout de l'option "DON'T CLICK HERE" en rouge
+                open_youtube()  # Exécute la fonction pour ouvrir YouTube
+            elif choice == "7":  # Mettez à jour le numéro de sortie ici
+=======
             elif choice == "6":
+>>>>>>> a4b8ef1080d1b15495605ad53314ae150b09e630
                 print("\nGoodbye!")
                 break
             else:
                 print("Invalid option, please try again.")
         else:
+            if keyboard.is_pressed('F1'):
+                program_paused = False
+                print("Program resumed.")
+                continue  # Revenir au menu principal
             time.sleep(1)  # Attendez pendant 1 seconde lorsque le programme est en pause
+
+def open_youtube():
+    url = 'https://youtu.be/a3Z7zEc7AXQ'
+    wb.open(url)
 
 if __name__ == "__main__":
     main()
+    
