@@ -223,7 +223,7 @@ def main_menu():
         print(f"{Fore.LIGHTMAGENTA_EX}Powered by Kawaii Squad Devs : Kaichi-Sama / >_Unknown User{Style.RESET_ALL}")
         print(f"\n{Fore.GREEN}♥ Kaichi-Sama Menu UwU ♥{Style.RESET_ALL}:")
         print("1. Local Database")
-        print(f"2. Network Databse {Fore.RED}Not Finished Need an other Dev for fix it Thanks <3{Style.RESET_ALL}")
+        print(f"2. Network Database {Fore.RED}Not Finished Need an other Dev for fix it Thanks <3{Style.RESET_ALL}")
         print("3. Start The Logger")
         print(f"{Fore.RED}4. DON'T CLICK HERE{Style.RESET_ALL}")  # Option 6 en rouge
         print("5. Exit")  # Mettez à jour le numéro des options ici
