@@ -2,19 +2,110 @@ import os
 import re
 import sys
 import shutil
-from colorama import Fore, Style  # Import colorama for colored output
+from colorama import Fore, Style, init
 import datetime
 import time
 import colorama
 import hashlib
+import json
+import getpass
+from collections import defaultdict
 import requests
+import traceback
+import pyfiglet
 import webbrowser as wb
 import keyboard  # Import keyboard module for keypress handling
-
+import vrchatapi
+from vrchatapi.api import authentication_api
+from vrchatapi.exceptions import UnauthorizedException
+from vrchatapi.models.two_factor_auth_code import TwoFactorAuthCode
+from vrchatapi.models.two_factor_email_code import TwoFactorEmailCode
+from vrchatapi.api import avatars_api, worlds_api
+from vrchatapi.rest import ApiException
+from vrchatapi.api_client import ApiClient
+from vrchatapi.configuration import Configuration
+init(autoreset=True)
 colorama.init()
 user_directory = os.path.expanduser("~")
 PATH = os.path.join(user_directory, "AppData", "LocalLow", "VRChat", "VRChat", "Cache-WindowsPlayer")
 program_paused = False
+
+
+# Fancy Welcome
+def fancy_welcome(version="1.0.6", developers=None):
+    if developers is None:
+        developers = [
+            {'name': 'Kaichi-Sama', 'role': 'Lead Developer'},
+            {'name': '>_Unknown User', 'role': 'Backend Developer'},
+        ]
+    
+    # ANSI escape codes for colors
+    pink_color = '\033[95m'
+    green_color = '\033[92m'
+    red_color = '\033[91m'
+    light_cyan_color = '\033[96m'
+    reset_color = '\033[0m'
+    box_width = 78  # The total width of the box
+
+    # ASCII Art text for "Welcome to Kawaii Squad"
+    welcome_text = r"""
+ __    __                                    __  __         ______                                       __ 
+/  |  /  |                                  /  |/  |       /      \                                     /  |
+$$ | /$$/   ______   __   __   __   ______  $$/ $$/       /$$$$$$  |  ______   __    __   ______    ____$$ |
+$$ |/$$/   /      \ /  | /  | /  | /      \ /  |/  |      $$ \__$$/  /      \ /  |  /  | /      \  /    $$ |
+$$  $$<    $$$$$$  |$$ | $$ | $$ | $$$$$$  |$$ |$$ |      $$      \ /$$$$$$  |$$ |  $$ | $$$$$$  |/$$$$$$$ |
+$$$$$  \   /    $$ |$$ | $$ | $$ | /    $$ |$$ |$$ |       $$$$$$  |$$ |  $$ |$$ |  $$ | /    $$ |$$ |  $$ |
+$$ |$$  \ /$$$$$$$ |$$ \_$$ \_$$ |/$$$$$$$ |$$ |$$ |      /  \__$$ |$$ \__$$ |$$ \__$$ |/$$$$$$$ |$$ \__$$ |
+$$ | $$  |$$    $$ |$$   $$   $$/ $$    $$ |$$ |$$ |      $$    $$/ $$    $$ |$$    $$/ $$    $$ |$$    $$ |
+$$/   $$/  $$$$$$$/  $$$$$/$$$$/   $$$$$$$/ $$/ $$/        $$$$$$/   $$$$$$$ | $$$$$$/   $$$$$$$/  $$$$$$$/ 
+                                                                          $$ |                              
+                                                                          $$ |                              
+                                                                          $$/                               
+    """
+
+    # Thank you message
+    thank_you_text = "Thank you for using the Kawaii VRC Scanner Tool"
+
+    # Version Box
+    version_box = f"""
+╔══════════════════════════════════════════════════════════════════════════════════╗
+║                                    Version: {version:<6}                               ║
+╚══════════════════════════════════════════════════════════════════════════════════╝
+"""
+
+    # Print the welcome message in pink
+    print(pink_color + welcome_text + reset_color)
+    # Print the thank you message in light cyan
+    print(light_cyan_color + thank_you_text + reset_color)
+    # Print the version box
+    print(light_cyan_color + version_box + reset_color)
+
+    # Heading for the developers section
+    developers_heading = "Developers and Contributors"
+    # Start of the box
+    print(pink_color + "╔" + "═" * (box_width - 2) + "╗" + reset_color)
+    # Heading
+    print(pink_color + "║" + developers_heading.center(box_width - 2) + "║" + reset_color)
+    # Separator
+    print(pink_color + "║" + "─" * (box_width - 2) + "║" + reset_color)
+    # List each developer and their role
+    for dev in developers:
+        name = dev.get('name', 'Unknown')
+        role = dev.get('role', 'Contributor')
+        # Prepare name and role with color
+        name_colored = green_color + name + reset_color
+        role_colored = red_color + role + reset_color
+        # Creating the entry
+        dev_entry = f"{name_colored} - {role_colored}"
+        # Calculate the necessary padding
+        padding = box_width - 2 - len(name) - len(role) - 3  # 3 for ' - ' between name and role
+        left_padding = padding // 2
+        right_padding = padding - left_padding
+        # Print the entry
+        print(pink_color + "║" + " " * left_padding + dev_entry + " " * right_padding + "║" + reset_color)
+    # End of the box
+    print(pink_color + "╚" + "═" * (box_width - 2) + "╝" + reset_color)
+fancy_welcome("1.0.6")
 
 #prend tout les id 
 def get_ids_from_file(filepath, pattern):
@@ -32,113 +123,122 @@ def create_directory(directory):
         os.makedirs(directory, exist_ok=True)
     except Exception as e:
         print(f"Error creating directory {directory}. Error message: {e}")
-#remove duplicate files
-def calculate_file_hash_except_ids(filepath):
+
+#start le logger
+def hash_file(filepath):
+    """Calculate SHA-256 hash of a file."""
     sha256_hash = hashlib.sha256()
-    with open(filepath, 'rb') as f:
-        while True:
-            data = f.read(65536)
-            if not data:
-                break
-            data_without_ids = data.replace(b"avtr_", b"").replace(b"wrld_", b"")
-            sha256_hash.update(data_without_ids)
+    with open(filepath, "rb") as f:
+        for byte_block in iter(lambda: f.read(4096), b""):
+            sha256_hash.update(byte_block)
     return sha256_hash.hexdigest()
 
-def remove_duplicate_files(directory_path, file_extension, log_file_name):
-    if not os.path.isdir(directory_path):
-        print("The specified directory does not exist")
-        return
+def load_log_data(log_path):
+    """Load existing log data from a JSON file."""
+    if not os.path.exists(log_path):
+        return defaultdict(list)
+    with open(log_path, 'r') as log_file:
+        try:
+            data = json.load(log_file)
+            return defaultdict(list, data)  # Ensure it's a defaultdict
+        except json.JSONDecodeError:
+            return defaultdict(list)
 
-    files_hash = {}
-    duplicate_files = {}
+def update_log_data(log_path, file_hash, file_id_without_extension, target_path):
+    """Update log data with a new associated ID under the same HASH_ID and protect the first logged file from being removed."""
+    log_data = load_log_data(log_path)
 
-    for filename in os.listdir(directory_path):
-        if filename.endswith(file_extension):
-            filepath = os.path.join(directory_path, filename)
-            file_hash = calculate_file_hash_except_ids(filepath)
+    # Check if the hash already exists in the log data
+    if file_hash not in log_data:
+        # It's the original file, so log it and return False (not a duplicate)
+        log_data[file_hash] = [file_id_without_extension]
+        with open(log_path, 'w') as log_file:
+            json.dump(dict(log_data), log_file, indent=2)
+        print(f"{Fore.BLUE}Original file logged: {file_id_without_extension}{Style.RESET_ALL}")
+        return False
 
-            if file_hash:
-                if file_hash not in files_hash:
-                    files_hash[file_hash] = filename
-                else:
-                    if file_hash not in duplicate_files:
-                        duplicate_files[file_hash] = [files_hash[file_hash]]
-                    duplicate_files[file_hash].append(filename)
-                    os.remove(filepath)
-                    print(f"File deleted: {filepath}")
+    # If the hash exists, but the file ID is not the first (original), it's a duplicate
+    if file_id_without_extension != log_data[file_hash][0]:
+        if file_id_without_extension not in log_data[file_hash]:
+            # It's a new duplicate, so append it to the list
+            log_data[file_hash].append(file_id_without_extension)
+            with open(log_path, 'w') as log_file:
+                json.dump(dict(log_data), log_file, indent=2)
+            # Remove the duplicate file
+            if os.path.exists(target_path):
+                os.remove(target_path)
+                print(f"{Fore.YELLOW}Duplicate file removed: {file_id_without_extension}{Style.RESET_ALL}")
+            return True  # This is a duplicate
+        else:
+            # The file ID is already logged as a duplicate
+            if os.path.exists(target_path):
+                os.remove(target_path)
+                print(f"{Fore.YELLOW}Duplicate file removed: {file_id_without_extension}{Style.RESET_ALL}")
+            return True  # This is a confirmed duplicate
+    else:
+        # It's the original file
+        print(f"{Fore.BLUE}Original file confirmed: {file_id_without_extension}{Style.RESET_ALL}")
+        return False  # This is the original file, not a duplicate
 
-    log_file_path = os.path.join(directory_path, log_file_name)
-    with open(log_file_path, 'w') as log_file:
-        for original_hash, file_list in duplicate_files.items():
-            log_file.write(f"Original ID: {original_hash}\n")
-            log_file.write("Sub IDs:\n")
-            for file_id in file_list:
-                log_file.write(f"{file_id}\n")
-            log_file.write("\n")
-    print(f"Log of deleted files saved in {log_file_path}")
-
-    log_file_path = os.path.join(os.path.dirname(directory_path), log_file_name)
-    with open(log_file_path, 'w') as log_file:
-        for original_hash, file_list in duplicate_files.items():
-            log_file.write(f"Original ID: {original_hash}\n")
-            log_file.write("Sub IDs:\n")
-            for file_id in file_list:
-                log_file.write(f"{file_id}\n")
-            log_file.write("\n")
-    print(f"Log of deleted files saved in {log_file_name}")
-
-def remove_duplicate_files_button():
-    script_directory = os.path.dirname(os.path.realpath(__file__))
-
-    vrca_directory = os.path.join(script_directory, "VRCA")
-    vrcw_directory = os.path.join(script_directory, "VRCW")
-
-    print("Analyzing the VRCA folder...")
-    remove_duplicate_files(vrca_directory, ".vrca", "ID_REF_VRCA.txt")
-
-    print("Analyzing the VRCW folder...")
-    remove_duplicate_files(vrcw_directory, ".vrcw", "ID_REF_VRCW.txt")
-#start le logger
 def start_the_logger():
     print(f"{Fore.LIGHTMAGENTA_EX}Logger Started Network & Locally{Style.RESET_ALL}")
-    create_directory("VRCW")
+    create_directory("Logs")
     create_directory("VRCA")
+    create_directory("VRCW")
+
+    log_vrca_path = os.path.join("Logs", "ID_REF_VRCA.json")
+    log_vrcw_path = os.path.join("Logs", "ID_REF_VRCW.json")
+
+    processed_dirs = set()
+    last_processed_time = None
 
     while True:
+        new_processed_dirs = set()
+        has_processed_files = False
+
         for root, dirs, files in os.walk(PATH):
-            for file in files:
-                if file == '__data':
-                    filepath = os.path.join(root, file)
-                    try:
-                        with open(filepath, 'r', encoding="utf-8", errors='ignore') as f:
-                            data = f.read()
-                            avtr_ids_found = re.findall(r"avtr_[a-f0-9\-]{36}", data)
-                            wrld_ids_found = re.findall(r"wrld_[a-f0-9\-]{36}", data)
+            # Check if the directory has been modified since last check
+            if root not in processed_dirs or last_processed_time is None or os.path.getmtime(root) > last_processed_time:
+                new_processed_dirs.add(root)
+                files = sorted(files, key=lambda x: os.path.getmtime(os.path.join(root, x)))
+                for file in files:
+                    if file.endswith('__data'):
+                        filepath = os.path.join(root, file)
+                        try:
+                            with open(filepath, 'r', encoding="utf-8", errors='ignore') as f:
+                                data = f.read()
+                                avtr_ids_found = re.findall(r"avtr_[a-f0-9\-]{36}", data)
+                                wrld_ids_found = re.findall(r"wrld_[a-f0-9\-]{36}", data)
+                                if avtr_ids_found or wrld_ids_found:
+                                    print(f"\n{Fore.YELLOW}File Analysis: {Fore.LIGHTCYAN_EX}{filepath}{Style.RESET_ALL}")
+                                for ids_found, directory, log_path in [(avtr_ids_found, 'VRCA', log_vrca_path), (wrld_ids_found, 'VRCW', log_vrcw_path)]:
+                                    for id_ in set(ids_found):
+                                        file_id_without_extension = id_
+                                        target_path = os.path.join(directory, f"{id_}.{directory.lower()}")
+                                        file_hash = hash_file(filepath)
+                                        
+                                        is_duplicate = update_log_data(log_path, file_hash, file_id_without_extension, target_path)       
+                                        if not os.path.exists(target_path) and not is_duplicate:
+                                            shutil.copy(filepath, target_path)
+                                            print(f"{datetime.datetime.now()} - {Fore.GREEN}{directory} Added Successfully: {id_}{Style.RESET_ALL}")
+                                        elif os.path.exists(target_path):
+                                            print(f"{datetime.datetime.now()} - {Fore.RED}{directory} Already Exists: {id_}{Style.RESET_ALL}")
+                            has_processed_files = True
+                        except Exception as e:
+                            print(f"Error reading file {filepath}. Error message: {e}")
+                            import traceback
+                            traceback.print_exc()
 
-                            if avtr_ids_found:
-                                for id_ in set(avtr_ids_found):
-                                    target_path = os.path.join("VRCA", f"{id_}.vrca")
-                                    if not os.path.exists(target_path):
-                                        shutil.copy(filepath, target_path)
-                                        print(f"{datetime.datetime.now()} - {Fore.GREEN}VRCA Added Successfully: {id_}.vrca{Style.RESET_ALL}")
-                                    else:
-                                        print(f"{datetime.datetime.now()} - {Fore.RED}VRCA Already Exists: {id_}.vrca{Style.RESET_ALL}")
-                            if wrld_ids_found:
-                                for id_ in set(wrld_ids_found):
-                                    target_path = os.path.join("VRCW", f"{id_}.vrcw")
-                                    if not os.path.exists(target_path):
-                                        shutil.copy(filepath, target_path)
-                                        print(f"{datetime.datetime.now()} - {Fore.GREEN}VRCW Added Successfully: {id_}.vrcw{Style.RESET_ALL}")
-                                    else:
-                                        print(f"{datetime.datetime.now()} - {Fore.RED}VRCW Already Exists: {id_}.vrcw{Style.RESET_ALL}")
+        if not has_processed_files:
+            # If no new files have been processed, wait for new files
+            print(f"{datetime.datetime.now()} - Waiting for new files...")
+            time.sleep(60)  # Wait for a minute before checking again
 
-                    except Exception as e:
-                        print(f"Error reading file {filepath}. Error message: {e}")
-        time.sleep(60)
-        print(f"{datetime.datetime.now()} - Waiting for new files...")
+        processed_dirs.update(new_processed_dirs)
+        last_processed_time = time.time()
 
-    # Reset the console color to default
     print(Style.RESET_ALL)
+
 #affiche tout les ids dans le cache
 def display_all_ids_in_cache():
     print("\nDisplaying All IDs in Your Cache:")
@@ -215,6 +315,44 @@ def display_avatar_info():
             if file.endswith(".vrca"):
                 avatar_id = os.path.splitext(file)[0]
                 print(f"Avatar ID: {avatar_id}")
+
+#research id in local database   
+def research_id_in_local_database(search_id):
+    current_directory = os.path.dirname(os.path.realpath(__file__))
+    logs_path = os.path.join(current_directory, "Logs")
+
+    file_names = ["ID_REF_VRCA.json", "ID_REF_VRCW.json"]
+    file_found = False
+    
+    for file_name in file_names:
+        file_path = os.path.join(logs_path, file_name)
+        
+        try:
+            with open(file_path, 'r') as file:
+                data = json.load(file)
+            
+            for key, id_list in data.items():
+                if search_id in id_list:
+                    associated_id = id_list[0]  # Take the first ID in the list
+                    # Determine whether the associated ID is VRCA or VRCW
+                    file_type = "VRCA" if file_name.endswith("VRCA.json") else "VRCW"
+                    associated_file_path = os.path.join(current_directory, file_type, f"{associated_id}.{file_type.lower()}")
+                    print(Fore.GREEN + f"The searched ID is associated with: {associated_id}")
+                    print(Fore.BLUE + "Here is the direct link to the file:")
+                    print(Fore.YELLOW + associated_file_path)  # This may become a clickable link in some terminals
+                    file_found = True
+                    break  # Break the loop if the ID is found
+        except FileNotFoundError:
+            print(Fore.RED + f"File not found: {file_path}")
+        except json.JSONDecodeError:
+            print(Fore.RED + f"Could not parse JSON from file: {file_path}")
+
+        if file_found:
+            break  # Break the outer loop if the ID is found
+
+    if not file_found:
+        print(Fore.RED + "ID not found in any of the provided JSON files.")
+
 #Main Menu Principal
 def main_menu():
     while True:
@@ -250,7 +388,7 @@ def local_database_menu():
         print("1. Display All IDs in Cache")
         print("2. Research an ID in Cache")
         print("3. Filtered Local Research")
-        print(f"4. Remove Duplicate Files : {Fore.RED}recommend doing it 1 time per day or per week{Style.RESET_ALL}")
+        print("4. Research an ID in LocalDatabase")  # Nouvelle option ajoutée ici
         print("5. Back to Main Menu")
 
         choice = input("Choose an option: ")
@@ -259,7 +397,7 @@ def local_database_menu():
             # Remplacez 'display_all_ids_in_cache' par le nom réel de votre fonction
             display_all_ids_in_cache()
         elif choice == "2":
-            search_id = input("\nEnter the ID you want to search for: ")
+            search_id = input("\nEnter the ID you want to research in cache: ")
             search_in_cache(search_id)
         elif choice == "3":
             print("\nSub-Menu:")
@@ -273,17 +411,18 @@ def local_database_menu():
                 display_ids_filtered("Avatar")
             else:
                 print("Invalid option, please try again.")
-        elif choice == "4":
-            remove_duplicate_files_button()
+        elif choice == "4":  # Nouveau cas pour la nouvelle option
+            search_id = input("\nEnter the ID you want to research in the LocalDatabase: ")
+            research_id_in_local_database(search_id)  # Fonction à définir
         elif choice == "5":
             break
         else:
             print("Invalid option, please try again.")
 #pas finit
-def Network_database_menu():
+def Network_database_menu():   
     while True:
         print("\nNetwork Database Menu:")
-        print("1. Display All IDs in Cache")
+        print("1. ")
         print("2. Research an ID in Network Database")
         print("3. ")
         print("4. Filtered Network Research")
@@ -319,6 +458,61 @@ def Network_database_menu():
 def rickroll():
     url = 'https://youtu.be/a3Z7zEc7AXQ'
     wb.open(url)
+    
+debug_mode_enabled = True  # Set to True to enable debug mode (no VRChat auth required)
 
-if __name__ == "__main__":
+#debug mode no vrchat auth needed (post production)
+def debug_mode():
+    print(f"{Fore.RED}Debug Mode Activated{Style.RESET_ALL}")
+
+def authenticate_and_access_network_database():
+    # Prompt the user for VRChat login credentials
+    print("Please log in to your VRChat account to access the network database")
+    username = input("Enter your VRChat username: ")
+    password = getpass.getpass("Enter your VRChat password: ")
+
+    # Create a configuration for the VRChat API
+    configuration = vrchatapi.Configuration(
+        username=username,
+        password=password,
+    )
+
+    # Attempt to create an API client session
+    with vrchatapi.ApiClient(configuration) as api_client:
+        # Instantiate API classes
+        auth_api = authentication_api.AuthenticationApi(api_client)
+
+        logged_in = False  # Flag to check if login was successful
+
+        while not logged_in:
+            try:
+                # Attempt to log in
+                current_user = auth_api.get_current_user()
+                print(Fore.GREEN + "Successfully logged in as: " + current_user.display_name + Style.RESET_ALL)
+                logged_in = True  # Set flag to True when login is successful
+                # Continue with the rest of the network database menu logic here
+                # ...
+
+            except UnauthorizedException as e:
+                if e.status == 401:
+                    # Handle 2FA
+                    if "Email 2 Factor Authentication" in e.reason:
+                        email_code = input("Enter your Email 2FA code: ")
+                        auth_api.verify2_fa_email_code(TwoFactorEmailCode(email_code))
+                    elif "2 Factor Authentication" in e.reason:
+                        two_fa_code = input("Enter your 2FA code: ")
+                        auth_api.verify2_fa(TwoFactorAuthCode(two_fa_code))
+                    else:
+                        print(Fore.RED + "Username or password is incorrect, or another login error occurred." + Style.RESET_ALL)
+                        return  # Return to the main menu or handle as necessary
+                else:
+                    print(Fore.RED + "An error occurred while attempting to call the API: %s\n" % e + Style.RESET_ALL)
+                    return  # Return to the main menu or handle as necessary
+            except vrchatapi.ApiException as e:
+                print(Fore.RED + "An exception occurred while attempting to call the API: %s\n" % e + Style.RESET_ALL)
+                return  # Return to the main menu or handle as necessary
+
+if debug_mode_enabled:
     main_menu()
+else:
+    authenticate_and_access_network_database()
