@@ -27,7 +27,9 @@ from vrchatapi.configuration import Configuration
 init(autoreset=True)
 colorama.init()
 user_directory = os.path.expanduser("~")
+
 PATH = os.path.join(user_directory, "AppData", "LocalLow", "VRChat", "VRChat", "Cache-WindowsPlayer")
+
 program_paused = False
 
 
@@ -320,17 +322,14 @@ def display_avatar_info():
 def research_id_in_local_database(search_id):
     current_directory = os.path.dirname(os.path.realpath(__file__))
     logs_path = os.path.join(current_directory, "Logs")
-
     file_names = ["ID_REF_VRCA.json", "ID_REF_VRCW.json"]
     file_found = False
     
     for file_name in file_names:
-        file_path = os.path.join(logs_path, file_name)
-        
+        file_path = os.path.join(logs_path, file_name)        
         try:
             with open(file_path, 'r') as file:
-                data = json.load(file)
-            
+                data = json.load(file)           
             for key, id_list in data.items():
                 if search_id in id_list:
                     associated_id = id_list[0]  # Take the first ID in the list
@@ -458,61 +457,7 @@ def Network_database_menu():
 def rickroll():
     url = 'https://youtu.be/a3Z7zEc7AXQ'
     wb.open(url)
-    
-debug_mode_enabled = True  # Set to True to enable debug mode (no VRChat auth required)
 
-#debug mode no vrchat auth needed (post production)
-def debug_mode():
-    print(f"{Fore.RED}Debug Mode Activated{Style.RESET_ALL}")
-
-def authenticate_and_access_network_database():
-    # Prompt the user for VRChat login credentials
-    print("Please log in to your VRChat account to access the network database")
-    username = input("Enter your VRChat username: ")
-    password = getpass.getpass("Enter your VRChat password: ")
-
-    # Create a configuration for the VRChat API
-    configuration = vrchatapi.Configuration(
-        username=username,
-        password=password,
-    )
-
-    # Attempt to create an API client session
-    with vrchatapi.ApiClient(configuration) as api_client:
-        # Instantiate API classes
-        auth_api = authentication_api.AuthenticationApi(api_client)
-
-        logged_in = False  # Flag to check if login was successful
-
-        while not logged_in:
-            try:
-                # Attempt to log in
-                current_user = auth_api.get_current_user()
-                print(Fore.GREEN + "Successfully logged in as: " + current_user.display_name + Style.RESET_ALL)
-                logged_in = True  # Set flag to True when login is successful
-                # Continue with the rest of the network database menu logic here
-                # ...
-
-            except UnauthorizedException as e:
-                if e.status == 401:
-                    # Handle 2FA
-                    if "Email 2 Factor Authentication" in e.reason:
-                        email_code = input("Enter your Email 2FA code: ")
-                        auth_api.verify2_fa_email_code(TwoFactorEmailCode(email_code))
-                    elif "2 Factor Authentication" in e.reason:
-                        two_fa_code = input("Enter your 2FA code: ")
-                        auth_api.verify2_fa(TwoFactorAuthCode(two_fa_code))
-                    else:
-                        print(Fore.RED + "Username or password is incorrect, or another login error occurred." + Style.RESET_ALL)
-                        return  # Return to the main menu or handle as necessary
-                else:
-                    print(Fore.RED + "An error occurred while attempting to call the API: %s\n" % e + Style.RESET_ALL)
-                    return  # Return to the main menu or handle as necessary
-            except vrchatapi.ApiException as e:
-                print(Fore.RED + "An exception occurred while attempting to call the API: %s\n" % e + Style.RESET_ALL)
-                return  # Return to the main menu or handle as necessary
-
-if debug_mode_enabled:
+#VRChat API & our API
+if __name__ == "__main__":
     main_menu()
-else:
-    authenticate_and_access_network_database()
