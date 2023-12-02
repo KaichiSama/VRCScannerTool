@@ -1,33 +1,31 @@
-Kawaii VRC Scanner Tool - Version 1.0.8
-Welcome to the Kawaii VRC Scanner Tool, an innovative Python-based tool designed for VRChat enthusiasts. This tool allows you to create your own avatar database right on your computer, giving you complete control over your VRChat experience.
+# VRC Scanner Tool v1.0.8.1 Release
 
-Features
-Local Avatar Database: Effortlessly build and manage a comprehensive avatar database on your local machine.
-UnityPy Integration: Utilizes UnityPy for efficient asset extraction, ensuring a seamless experience.
-Future Updates: Plans to include server database upload functionality for enhanced data management.
-Getting Started
-Prerequisites
-Python installed on your system.
-Required Python dependencies, including UnityPy.
-Installation
-Clone the repository or download the source code.
-Install the required dependencies:
-Copy code
-pip install -r requirements.txt
-Running the Tool
-Execute the script via a Python interpreter or use a batch file within your environment.
-Contributing
-Interested in contributing to the Kawaii VRC Scanner Tool? We welcome contributions of all forms. Please feel free to fork the repository, make your changes, and submit a pull request.
+We're excited to announce the release of VRC Scanner Tool v1.0.8.1! This tool allows you to create and manage a local database for VRChat content. It's perfect for VRChat enthusiasts and creators who want to organize their content. 
 
-For detailed instructions, please refer to our CONTRIBUTING.md file.
+## Installation Instructions
 
-Support and Contact
-For support, inquiries, or suggestions, please reach out to us on Discord: kaichisama.
+Before you get started, make sure to follow these steps for a smooth installation:
 
-License
-This project is open-source and available under the MIT License.
+### Step 1: Install Microsoft C++ Build Tools
 
-Acknowledgments
-A special thank you to everyone who has supported and contributed to this project. Your feedback and contributions have been invaluable.
+To ensure that the tool runs smoothly, you need to install Microsoft Visual C++ Build Tools. Download and install it from [this link](https://www.microsoft.com/store/productId/9NRWMJP3717K?ocid=pdpshare).
 
-Stay tuned for more updates, and enjoy exploring VRChat with the Kawaii VRC Scanner Tool!
+### Step 2: Install the 'VRCScannerToolV1.0.8.1.zip' Package
+
+Download the 'VRCScannerToolV1.0.8.1.zip' package from our [GitHub releases](https://github.com/YourGitHubUsername/YourRepository/releases) page.
+
+### Step 3: Run the Tool
+
+After you've installed the required tools and downloaded the package, run the 'Run me as Admin.bat' file. This will start the VRC Scanner Tool.
+
+### Step 4: Enjoy!
+
+You're all set! You can now enjoy your local database created with VRC Scanner Tool v1.0.8.1. We hope you find it useful.
+
+## Support and Feedback
+
+We'd love to hear from you! If you encounter any issues or have suggestions for improvements, please don't hesitate to reach out. Your feedback is essential in making this tool better.
+
+Thank you for using VRC Scanner Tool v1.0.8.1!
+
+\- Kaichi-Sama
