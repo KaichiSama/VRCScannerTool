@@ -23,7 +23,7 @@ import webbrowser as wb
 import UnityPy
 from UnityPy.enums import ClassIDType
 from UnityPy.classes.Object import NodeHelper
-import keyboard  # Import keyboard module for keypress handling
+import keyboard  # Import keyboard module for keypress handling 
 import vrchatapi
 from vrchatapi.api import authentication_api
 from vrchatapi.exceptions import UnauthorizedException
@@ -33,38 +33,88 @@ from vrchatapi.api import avatars_api, worlds_api
 from vrchatapi.rest import ApiException
 from vrchatapi.api_client import ApiClient
 from vrchatapi.configuration import Configuration
+from collections import defaultdict
+from colorama import Fore, Style, init
+import colorama  # Ajout de l'importation manquante
+from plyer import notification
+from pythonosc import udp_client
+import threading
+
 init(autoreset=True)
-colorama.init()
 user_directory = os.path.expanduser("~")
 
+# Chemins constants
+LOGS_PATH = os.path.join(user_directory, "Logs")
 PATH = os.path.join(user_directory, "AppData", "LocalLow", "VRChat", "VRChat", "Cache-WindowsPlayer")
 
-def install_dependencies():
-    # Mettre à jour pip
-    subprocess.check_call([sys.executable, '-m', 'pip', 'install', '--upgrade', 'pip'])
+# Fonction pour afficher une notification
+def show_notification(title, message):
+    notification.notify(
+        title=title,
+        message=message,
+        app_name='LocalAvatarLogger',  # Nom de votre application
+        app_icon=None,  # Chemin vers l'icône de l'application (si nécessaire)
+        timeout=10  # Durée en secondes pendant laquelle la notification est affichée
+    )
 
-    # Liste des packages requis
-    required_packages = [
-        'colorama', 'requests', 'UnityPy', 'keyboard', 'vrchatapi',
-        # Ajoutez ici d'autres packages requis
+# Définition de la fonction pour télécharger le dernier script depuis GitHub
+def download_latest_script():
+    raw_github_url = "https://raw.githubusercontent.com/KaichiSama/LocalAvatarLogger/main/VRChatScanner.py"
+    response = requests.get(raw_github_url)
+    
+    if response.status_code == 200:
+        return response.text
+    else:
+        print(f"Failed to download the latest script. Status code: {response.status_code}")
+        return None
+
+def check_for_updates():
+    latest_script_content = download_latest_script()
+
+    if latest_script_content:
+        with open(local_script_path, "r", encoding="utf-8") as local_script_file:
+            local_script_content = local_script_file.read()
+
+        if local_script_content != latest_script_content:
+            print("Updating script...")
+            with open(local_script_path, "w", encoding="utf-8") as local_script_file:
+                local_script_file.write(latest_script_content)
+            print("Script updated successfully.")
+            show_notification("Mise à jour", "Le script a été mis à jour avec succès.")
+        else:
+            print("Script is already up-to-date.")
+    else:
+        print("Unable to check for updates. Please try again later.")
+
+# Définition du chemin local du script
+local_script_path = "VRChatScanner.py"
+
+# Télécharger et appliquer automatiquement les mises à jour au démarrage du script
+check_for_updates()
+
+# Configuration VRChat
+IP_VRCHAT = "127.0.0.1"  # Adresse IP de votre instance VRChat
+PORT_VRCHAT_SEND = 9000  # Port d'envoi OSC de VRChat
+
+def send_osc_message(address, *args):
+    client = udp_client.SimpleUDPClient(IP_VRCHAT, PORT_VRCHAT_SEND)
+    client.send_message(address, args)
+
+# "Kawaii Gang Avatar Reaper Free"
+def advertise_kawaii_gang():
+    kawaii_frames = [
+        "🌈 Thanks for use Kawaii Squad Script 🌸",
+        "🌟 Discover amazing avatars with us! ✨",
+        "🎉 Visit our community for free avatars! 🎊",
+        "🌈 Join Kawaii Squad Avatar Reaper Free! 🌸"
     ]
 
-    # Obtenir la liste des packages déjà installés
-    installed_packages = {pkg.key for pkg in pkg_resources.working_set}
+    # Adresse OSC pour envoyer un message au chatbox de VRChat
+    chatbox_address = "/chatbox/input"
 
-    # Identifier les packages manquants
-    missing_packages = [pkg for pkg in required_packages if pkg not in installed_packages]
-
-    # Installer les packages manquants
-    if missing_packages:
-        print("Installing missing packages:", ", ".join(missing_packages))
-        try:
-            subprocess.check_call([sys.executable, '-m', 'pip', 'install', *missing_packages])
-        except subprocess.CalledProcessError as e:
-            print(f"An error occurred while installing packages: {e}")
-            sys.exit(1)
-    else:
-        print("All required packages are already installed.")
+    for frame in kawaii_frames:
+        send_osc_message(chatbox_address, frame)
+        time.sleep(2)
 
 #VERSION DU LOGICIEL :
 version = "1.0.8"
@@ -73,7 +123,7 @@ def fancy_welcome(version, developers=None):
     if developers is None:
         developers = [
             {'name': 'Kaichi-Sama', 'role': 'Lead Developer'},
-            {'name': '', 'role': 'Backend Developer'},
+            {'name': 'Freakiv3', 'role': 'Backend Developer'},  # Ajout de Freakiv3 en tant que Backend Developer
         ]
     
     # ANSI escape codes for colors
@@ -81,6 +131,7 @@ def fancy_welcome(version, developers=None):
     green_color = '\033[92m'
     red_color = '\033[91m'
     light_cyan_color = '\033[96m'
+    violet_color = '\033[95m'  # Nouvelle couleur violette
     reset_color = '\033[0m'
     box_width = 78  # The total width of the box
 
@@ -147,7 +198,8 @@ fancy_welcome(version)
 # VRCHAT API
 user_agent = 'VRC Scanner Tool / Kawaii Squad'
 auth_cookie_path = 'Logs/AuthCookie.bin'
-
+show_notification('Kawaii Squad', 'The LocalAvatarLogger script was launched successfully.')
+advertise_kawaii_gang()
 #HERE PUT AUTH CODE
 def login_and_save_auth_cookie():
     print("Welcome to the VRChat login script!")
@@ -165,9 +217,14 @@ def login_and_save_auth_cookie():
                 auth_api = vrchatapi.AuthenticationApi(api_client)
                 current_user = auth_api.get_current_user()
                 print("\033[92mLogged in as:", current_user.display_name + "\033[0m")
+                
                 return  # If authentication is successful, exit the function
-        except vrchatapi.ApiException:
-            print("Authentication failed with existing cookie. Login required.")
+        except vrchatapi.ApiException as e:
+            if "Invalid Username/Email or Password" in str(e):
+                print("Invalid Username/Email or Password. Please try again.")
+                wait_and_restart()
+            else:
+                print("Authentication failed with existing cookie. Login required.")
 
     try:
         # Prompt the user for their username and password
@@ -185,7 +242,10 @@ def login_and_save_auth_cookie():
             try:
                 current_user = auth_api.get_current_user()
             except vrchatapi.ApiException as e:
-                if e.status == 200:
+                if "Invalid Username/Email or Password" in str(e):
+                    print("Invalid Username/Email or Password. Please try again.")
+                    wait_and_restart()
+                elif e.status == 200:
                     if "Email 2 Factor Authentication" in e.reason:
                         auth_api.verify2_fa_email_code(two_factor_email_code=vrchatapi.TwoFactorEmailCode(input("Email 2FA Code: ")))
                     elif "2 Factor Authentication" in e.reason:
@@ -197,10 +257,11 @@ def login_and_save_auth_cookie():
                             return
                     current_user = auth_api.get_current_user()
                 else:
-                    print("Exception when calling API: %s\n", e)
+                    print("Exception when calling API:", e)
+                    wait_and_restart()
 
             print("\033[92mLogged in as:", current_user.display_name + "\033[0m")
-
+            show_notification('Connecté avec Succès', 'L\'utilisateur est connecté avec succès.')
             cookies = api_client.rest_client.cookie_jar
             mock_request_object = Request(url="https://api.vrchat.cloud/api/1/auth/user", method="GET")
             cookies.add_cookie_header(mock_request_object)
@@ -214,12 +275,52 @@ def login_and_save_auth_cookie():
 
     except Exception as e:
         print("Error during login:", str(e))
+        wait_and_restart()
 
+def wait_and_restart():
+    show_notification("Identifiants incorrects", "Invalid Username/Email or Password. Please try again.")
+    
+    print("Waiting for 5 seconds before restarting the script...")
+    time.sleep(5)
+    
+    # Efface la console
+    if os.name == 'nt':  # Si le système d'exploitation est Windows
+        os.system('cls')
+    else:  # Pour d'autres systèmes d'exploitation comme Linux ou macOS
+        os.system('clear')
+    
+    print("Restarting...")
+    
+    python = sys.executable
+    os.execl(python, python, *sys.argv)
+        
 def create_directory(directory):
     try:
         os.makedirs(directory, exist_ok=True)
     except Exception as e:
         print(f"Error creating directory {directory}. Error message: {e}")
+        
+
+# Ajout de la fonction 'getpass' manquante
+def getpass(prompt):
+    try:
+        import msvcrt
+        print(prompt, end='', flush=True)
+        password = ""
+        while True:
+            key = msvcrt.getch()
+            if key == b'\r' or key == b'\n':
+                print('')
+                break
+            elif key == b'\x08':
+                password = password[:-1]
+                print('\b \b', end='', flush=True)
+            else:
+                password += key.decode()
+                print('*', end='', flush=True)
+        return password
+    except Exception:
+        return input(prompt)
 
 #get info Avatars/worlds
 def download_entity_image(entity_id, entity_type):
