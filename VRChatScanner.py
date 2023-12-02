@@ -5,15 +5,22 @@ import shutil
 from colorama import Fore, Style, init
 import datetime
 import time
+import logging
 import colorama
 import hashlib
+import base64
 import json
-import getpass
+import logging
+from getpass import getpass
 from collections import defaultdict
 import requests
+from urllib.request import Request
 import traceback
 import pyfiglet
 import webbrowser as wb
+import UnityPy
+from UnityPy.enums import ClassIDType
+from UnityPy.classes.Object import NodeHelper
 import keyboard  # Import keyboard module for keypress handling
 import vrchatapi
 from vrchatapi.api import authentication_api
@@ -30,15 +37,14 @@ user_directory = os.path.expanduser("~")
 
 PATH = os.path.join(user_directory, "AppData", "LocalLow", "VRChat", "VRChat", "Cache-WindowsPlayer")
 
-program_paused = False
-
-
+#VERSION DU LOGICIEL :
+version = "1.0.8"
 # Fancy Welcome
-def fancy_welcome(version="1.0.6", developers=None):
+def fancy_welcome(version, developers=None):
     if developers is None:
         developers = [
             {'name': 'Kaichi-Sama', 'role': 'Lead Developer'},
-            {'name': '>_Unknown User', 'role': 'Backend Developer'},
+            {'name': '', 'role': 'Backend Developer'},
         ]
     
     # ANSI escape codes for colors
@@ -71,7 +77,7 @@ $$/   $$/  $$$$$$$/  $$$$$/$$$$/   $$$$$$$/ $$/ $$/        $$$$$$/   $$$$$$$ | $
     # Version Box
     version_box = f"""
 ╔══════════════════════════════════════════════════════════════════════════════════╗
-║                                    Version: {version:<6}                               ║
+║                                    Version: {version:<}                                ║
 ╚══════════════════════════════════════════════════════════════════════════════════╝
 """
 
@@ -107,24 +113,205 @@ $$/   $$/  $$$$$$$/  $$$$$/$$$$/   $$$$$$$/ $$/ $$/        $$$$$$/   $$$$$$$ | $
         print(pink_color + "║" + " " * left_padding + dev_entry + " " * right_padding + "║" + reset_color)
     # End of the box
     print(pink_color + "╚" + "═" * (box_width - 2) + "╝" + reset_color)
-fancy_welcome("1.0.6")
+fancy_welcome(version)
 
-#prend tout les id 
-def get_ids_from_file(filepath, pattern):
-    ids_found = []
+# VRCHAT API
+user_agent = 'VRC Scanner Tool / Kawaii Squad'
+auth_cookie_path = 'Logs/AuthCookie.bin'
+
+#HERE PUT AUTH CODE
+def login_and_save_auth_cookie():
+    print("Welcome to the VRChat login script!")
+
+    # Check if AuthCookie file exists and is valid
+    if os.path.exists("logs/AuthCookie.bin"):
+        with open("logs/AuthCookie.bin", "r") as f:
+            auth_cookie = f.read()
+
+        configuration = vrchatapi.Configuration()
+        configuration.api_key['cookie'] = auth_cookie
+
+        try:
+            with vrchatapi.ApiClient(configuration) as api_client:
+                auth_api = vrchatapi.AuthenticationApi(api_client)
+                current_user = auth_api.get_current_user()
+                print("\033[92mLogged in as:", current_user.display_name + "\033[0m")
+                return  # If authentication is successful, exit the function
+        except vrchatapi.ApiException:
+            print("Authentication failed with existing cookie. Login required.")
+
     try:
-        with open(filepath, 'r', encoding="utf-8", errors='ignore') as f:
-            data = f.read()
-            ids_found = re.findall(pattern, data)
+        # Prompt the user for their username and password
+        username = input("Enter your VRChat username: ")
+        password = getpass("Enter your VRChat password: ")
+
+        configuration = vrchatapi.Configuration(
+            username=username,
+            password=password,
+        )
+
+        with vrchatapi.ApiClient(configuration) as api_client:
+            auth_api = vrchatapi.AuthenticationApi(api_client)
+
+            try:
+                current_user = auth_api.get_current_user()
+            except vrchatapi.ApiException as e:
+                if e.status == 200:
+                    if "Email 2 Factor Authentication" in e.reason:
+                        auth_api.verify2_fa_email_code(two_factor_email_code=vrchatapi.TwoFactorEmailCode(input("Email 2FA Code: ")))
+                    elif "2 Factor Authentication" in e.reason:
+                        two_factor_code = input("2FA Code: ")
+                        if two_factor_code:
+                            auth_api.verify2_fa(two_factor_auth_code=vrchatapi.TwoFactorAuthCode(two_factor_code))
+                        else:
+                            print("Two-Factor Authentication is required, but no code provided.")
+                            return
+                    current_user = auth_api.get_current_user()
+                else:
+                    print("Exception when calling API: %s\n", e)
+
+            print("\033[92mLogged in as:", current_user.display_name + "\033[0m")
+
+            cookies = api_client.rest_client.cookie_jar
+            mock_request_object = Request(url="https://api.vrchat.cloud/api/1/auth/user", method="GET")
+            cookies.add_cookie_header(mock_request_object)
+            auth_cookie = mock_request_object.get_header("Cookie")
+
+            os.makedirs("logs", exist_ok=True)
+
+            with open("logs/AuthCookie.bin", "wb") as f:
+                f.write(auth_cookie.encode())
+            print("Authentication cookie saved in AuthCookie.bin")
+
     except Exception as e:
-        print(f"Error reading file {filepath}. Error message: {e}")
-    return ids_found
+        print("Error during login:", str(e))
 
 def create_directory(directory):
     try:
         os.makedirs(directory, exist_ok=True)
     except Exception as e:
         print(f"Error creating directory {directory}. Error message: {e}")
+
+#get info Avatars/worlds
+def download_entity_image(entity_id, entity_type):
+    logging.basicConfig(filename='logs/download_log.log', level=logging.INFO, format='%(asctime)s %(message)s')
+
+    # Construire le chemin du fichier en fonction du type d'entité
+    file_name_suffix = "AVATARS" if entity_type == "VRCA" else "WORLDS"
+    file_path = f'logs/INFO_{file_name_suffix}.json'
+
+    # Vérifier l'existence du fichier
+    if not os.path.exists(file_path):
+        logging.error(f"File {file_path} not found.")
+        return
+
+    # Charger les données du fichier
+    with open(file_path, 'r') as file:
+        entities_info = json.load(file)
+
+    # Rechercher l'entité par ID et télécharger l'image
+    for entity_info in entities_info:
+        if entity_info.get('id') == entity_id:
+            image_url = entity_info.get('imageUrl')
+            if not image_url:
+                logging.warning(f"No image URL for entity ID {entity_id}")
+                return
+
+            try:
+                headers = {'User-Agent': 'VRC Scanner Tool / Kawaii Squad'}
+                response = requests.get(image_url, headers=headers)
+                response.raise_for_status()
+
+                image_filename = f"{entity_id}.png"
+                image_folder = os.path.join('logs', 'images', 'AvatarsPNG' if entity_type == 'VRCA' else 'WorldsPNG')
+                os.makedirs(image_folder, exist_ok=True)
+                image_path = os.path.join(image_folder, image_filename)
+
+                with open(image_path, 'wb') as image_file:
+                    image_file.write(response.content)
+
+                logging.info(f"Image uploaded successfully for entity ID {entity_id}")
+                return
+            except requests.exceptions.RequestException as e:
+                logging.error(f"Failed to upload image for entity ID {entity_id}: {e}")
+                return
+
+    logging.warning(f"Entity ID {entity_id} was not found in {file_path}")
+
+def get_info_id(id_, id_type):
+    # Charger le cookie d'authentification
+    if os.path.exists(auth_cookie_path):
+        with open(auth_cookie_path, 'r') as file:
+            cookie_content = file.read().strip()
+            # Extraire la valeur du cookie 'auth'
+            auth_cookie = next((part.split('=')[1] for part in cookie_content.split('; ') if part.startswith('auth=')), None)
+            if not auth_cookie:
+                print("Auth cookie value not found in the file.")
+                return None
+    else:
+        print("Auth cookie file not found. Please log in first.")
+        return None
+
+    # Définir l'URL de la requête
+    url = f"https://api.vrchat.cloud/api/1/{'avatars' if id_type == 'VRCA' else 'worlds'}/{id_}" if id_type in ['VRCA', 'VRCW'] else None
+
+    if not url:
+        print(f"Unsupported ID type: {id_type}")
+        return None
+
+    headers = {"User-Agent": user_agent}
+    cookies = {"auth": auth_cookie}
+
+    response = requests.get(url, headers=headers, cookies=cookies)
+    if response.status_code == 200:
+        # Traitement des données et écriture dans Temp_data.json
+        data = response.json()
+        data_file_path = 'logs/Temp_data.json'
+        existing_data = {}
+        if os.path.exists(data_file_path):
+            with open(data_file_path, 'r') as file:
+                existing_data = json.load(file)
+        
+        # Ajouter ou mettre à jour les informations de l'ID dans les données existantes
+        existing_data[id_] = data
+
+        # Écrire les données mises à jour dans le fichier Temp_data.json
+        with open(data_file_path, 'w') as file:
+            json.dump(existing_data, file, indent=4)
+        
+        print(f"\033[92mInformations successfully recorded for {id_type} ID {id_} : Public.\033[0m")
+        return data
+    elif response.status_code == 404:
+        print(f"\033[91mInformations failed recorded for {id_type} ID {id_} : Private.\033[0m")
+        return None
+    else:
+        # Si le code de statut n'est ni 200 ni 404, traiter comme une erreur
+        print(f"\033[91mUnexpected response status: {response.status_code} for {id_type} ID {id_}.\033[0m")
+        return None
+
+def save_json_data(file_path, new_data):
+    # Charger les données existantes, sinon initialiser une liste vide
+    if os.path.exists(file_path):
+        with open(file_path, 'r') as file:
+            existing_data = json.load(file)
+    else:
+        existing_data = []
+
+    # Vérifier les doublons et les mettre à jour
+    existing_ids = {data['id'] for data in existing_data if 'id' in data}
+    if 'id' in new_data and new_data['id'] in existing_ids:
+        # Mettre à jour l'entrée existante
+        for i, data in enumerate(existing_data):
+            if data['id'] == new_data['id']:
+                existing_data[i] = new_data
+                break
+    else:
+        # Ajouter les nouvelles données
+        existing_data.append(new_data)
+
+    # Enregistrer les données mises à jour
+    with open(file_path, 'w') as file:
+        json.dump(existing_data, file, indent=2)
 
 #start le logger
 def hash_file(filepath):
@@ -134,7 +321,7 @@ def hash_file(filepath):
         for byte_block in iter(lambda: f.read(4096), b""):
             sha256_hash.update(byte_block)
     return sha256_hash.hexdigest()
-
+  
 def load_log_data(log_path):
     """Load existing log data from a JSON file."""
     if not os.path.exists(log_path):
@@ -147,40 +334,42 @@ def load_log_data(log_path):
             return defaultdict(list)
 
 def update_log_data(log_path, file_hash, file_id_without_extension, target_path):
-    """Update log data with a new associated ID under the same HASH_ID and protect the first logged file from being removed."""
+    """Update log data with a new associated ID under the same HASH_ID."""
     log_data = load_log_data(log_path)
 
     # Check if the hash already exists in the log data
     if file_hash not in log_data:
-        # It's the original file, so log it and return False (not a duplicate)
+        # It's a new file, so log it
         log_data[file_hash] = [file_id_without_extension]
         with open(log_path, 'w') as log_file:
             json.dump(dict(log_data), log_file, indent=2)
         print(f"{Fore.BLUE}Original file logged: {file_id_without_extension}{Style.RESET_ALL}")
         return False
 
-    # If the hash exists, but the file ID is not the first (original), it's a duplicate
-    if file_id_without_extension != log_data[file_hash][0]:
-        if file_id_without_extension not in log_data[file_hash]:
-            # It's a new duplicate, so append it to the list
-            log_data[file_hash].append(file_id_without_extension)
-            with open(log_path, 'w') as log_file:
-                json.dump(dict(log_data), log_file, indent=2)
-            # Remove the duplicate file
-            if os.path.exists(target_path):
-                os.remove(target_path)
-                print(f"{Fore.YELLOW}Duplicate file removed: {file_id_without_extension}{Style.RESET_ALL}")
-            return True  # This is a duplicate
-        else:
-            # The file ID is already logged as a duplicate
-            if os.path.exists(target_path):
-                os.remove(target_path)
-                print(f"{Fore.YELLOW}Duplicate file removed: {file_id_without_extension}{Style.RESET_ALL}")
-            return True  # This is a confirmed duplicate
-    else:
+    # If the hash exists, check if it's the same file ID
+    if file_id_without_extension == log_data[file_hash][0]:
         # It's the original file
         print(f"{Fore.BLUE}Original file confirmed: {file_id_without_extension}{Style.RESET_ALL}")
         return False  # This is the original file, not a duplicate
+    else:
+        # It's a different file with the same hash, treat it as a duplicate
+        if os.path.exists(target_path):
+            os.remove(target_path)
+            print(f"{Fore.YELLOW}Duplicate file removed: {file_id_without_extension}{Style.RESET_ALL}")
+        return True  # This is a duplicate
+
+def extract_blueprint_ids(asset_path):
+    # Chargez le fichier d'asset
+    env = UnityPy.load(asset_path)
+    # Parcourez tous les objets dans l'environnement du fichier d'asset
+    for obj in env.objects:
+        # Vérifiez si l'objet est un MonoBehaviour
+        if obj.type.name == 'MonoBehaviour':
+            # Parsez les données de MonoBehaviour
+            data = obj.read()
+            # Si data contient une propriété 'blueprintId', affichez-la         
+            if hasattr(data, 'blueprintId')and hasattr(data, 'contentType'):
+                return data.blueprintId
 
 def start_the_logger():
     print(f"{Fore.LIGHTMAGENTA_EX}Logger Started Network & Locally{Style.RESET_ALL}")
@@ -199,7 +388,6 @@ def start_the_logger():
         has_processed_files = False
 
         for root, dirs, files in os.walk(PATH):
-            # Check if the directory has been modified since last check
             if root not in processed_dirs or last_processed_time is None or os.path.getmtime(root) > last_processed_time:
                 new_processed_dirs.add(root)
                 files = sorted(files, key=lambda x: os.path.getmtime(os.path.join(root, x)))
@@ -207,34 +395,43 @@ def start_the_logger():
                     if file.endswith('__data'):
                         filepath = os.path.join(root, file)
                         try:
-                            with open(filepath, 'r', encoding="utf-8", errors='ignore') as f:
-                                data = f.read()
-                                avtr_ids_found = re.findall(r"avtr_[a-f0-9\-]{36}", data)
-                                wrld_ids_found = re.findall(r"wrld_[a-f0-9\-]{36}", data)
-                                if avtr_ids_found or wrld_ids_found:
-                                    print(f"\n{Fore.YELLOW}File Analysis: {Fore.LIGHTCYAN_EX}{filepath}{Style.RESET_ALL}")
-                                for ids_found, directory, log_path in [(avtr_ids_found, 'VRCA', log_vrca_path), (wrld_ids_found, 'VRCW', log_vrcw_path)]:
-                                    for id_ in set(ids_found):
-                                        file_id_without_extension = id_
-                                        target_path = os.path.join(directory, f"{id_}.{directory.lower()}")
-                                        file_hash = hash_file(filepath)
-                                        
-                                        is_duplicate = update_log_data(log_path, file_hash, file_id_without_extension, target_path)       
-                                        if not os.path.exists(target_path) and not is_duplicate:
-                                            shutil.copy(filepath, target_path)
-                                            print(f"{datetime.datetime.now()} - {Fore.GREEN}{directory} Added Successfully: {id_}{Style.RESET_ALL}")
-                                        elif os.path.exists(target_path):
-                                            print(f"{datetime.datetime.now()} - {Fore.RED}{directory} Already Exists: {id_}{Style.RESET_ALL}")
-                            has_processed_files = True
+                            blueprint_id = extract_blueprint_ids(filepath)
+                            if blueprint_id:
+                                print(f"{Fore.YELLOW}File Analysis: {Fore.LIGHTCYAN_EX}{filepath}{Style.RESET_ALL}", end="")
+                                print(f"\n{Fore.MAGENTA}Blueprint ID Found: {Fore.LIGHTCYAN_EX}{blueprint_id}{Style.RESET_ALL}")
+
+                                # Déterminez le type d'entité et le chemin de log approprié
+                                entity_type = 'VRCA' if blueprint_id.startswith('avtr_') else 'VRCW'
+                                log_path = log_vrca_path if entity_type == 'VRCA' else log_vrcw_path
+                                info_path = 'logs/INFO_AVATARS.json' if entity_type == 'VRCA' else 'logs/INFO_WORLDS.json'
+                                target_path = os.path.join(entity_type, f"{blueprint_id}.{entity_type.lower()}")
+
+                                file_hash = hash_file(filepath)
+                                is_duplicate = update_log_data(log_path, file_hash, blueprint_id, target_path)
+
+                                if not os.path.exists(target_path) and not is_duplicate:
+                                    shutil.copy(filepath, target_path)
+                                    print(f"{datetime.datetime.now()} - {Fore.GREEN}{entity_type} Added Successfully: {blueprint_id}{Style.RESET_ALL}")
+                                    
+                                    info = get_info_id(blueprint_id, entity_type)
+                                    if info:
+                                        save_json_data(info_path, info)
+                                        download_entity_image(blueprint_id, entity_type)
+
+                                elif os.path.exists(target_path):
+                                    print(f"{datetime.datetime.now()} - {Fore.RED}{entity_type} Already Exists: {blueprint_id}{Style.RESET_ALL}")
+
+                                has_processed_files = True
+                                print()
+
                         except Exception as e:
                             print(f"Error reading file {filepath}. Error message: {e}")
                             import traceback
                             traceback.print_exc()
 
         if not has_processed_files:
-            # If no new files have been processed, wait for new files
             print(f"{datetime.datetime.now()} - Waiting for new files...")
-            time.sleep(60)  # Wait for a minute before checking again
+            time.sleep(60)
 
         processed_dirs.update(new_processed_dirs)
         last_processed_time = time.time()
@@ -246,20 +443,14 @@ def display_all_ids_in_cache():
     print("\nDisplaying All IDs in Your Cache:")
     for root, dirs, files in os.walk(PATH):
         for file in files:
-            if file == '__data':
+            if file.endswith('__data'):
                 filepath = os.path.join(root, file)
                 try:
-                    with open(filepath, 'r', encoding="utf-8", errors='ignore') as f:
-                        data = f.read()
-                        avtr_ids_found = re.findall(r"(avtr_[a-f0-9\-]{36})", data)
-                        wrld_ids_found = re.findall(r"(wrld_[a-f0-9\-]{36})", data)
-
-                        if avtr_ids_found or wrld_ids_found:
-                            print(f"\n{Fore.YELLOW}File Analysis: {Fore.LIGHTCYAN_EX}{filepath}{Style.RESET_ALL}")
-                            for avtr_id in set(avtr_ids_found):
-                                print(f"{datetime.datetime.now()} - {Fore.LIGHTYELLOW_EX}Avatar ID : {Fore.GREEN}{avtr_id}{Style.RESET_ALL}")
-                            for wrld_id in set(wrld_ids_found):
-                                print(f"{datetime.datetime.now()} - {Fore.LIGHTMAGENTA_EX}World ID : {Fore.GREEN}{wrld_id}{Style.RESET_ALL}")
+                    blueprint_id = extract_blueprint_ids(filepath)
+                    if blueprint_id:
+                        id_type = "Avatar" if blueprint_id.startswith('avtr_') else "World"
+                        id_color = Fore.LIGHTYELLOW_EX if id_type == "Avatar" else Fore.LIGHTMAGENTA_EX
+                        print(f"{datetime.datetime.now()} - {id_color}{id_type} ID : {Fore.GREEN}{blueprint_id}{Style.RESET_ALL}")
                 except Exception as e:
                     print(f"Error reading file {filepath}. Error message: {e}")
 #search ID in Cache
@@ -302,21 +493,24 @@ def display_ids_filtered(option):
                 entity_id = os.path.splitext(file)[0]
                 print(f"{entity} ID: {entity_id}")
 
+# Initialise Colorama
+colorama.init(autoreset=True)
+
 def display_world_info():
-    print("\nDisplaying World Info in Local Database:")
+    print("\033[33mDisplaying World Info in Local Database:\033[0m")
     for root, dirs, files in os.walk("VRCW"):
         for file in files:
             if file.endswith(".vrcw"):
                 world_id = os.path.splitext(file)[0]
-                print(f"World ID: {world_id}")
+                print(f"\033[95mWorld ID: \033[92m{world_id}\033[0m")
 
 def display_avatar_info():
-    print("\nDisplaying Avatar Info in Local Database:")
+    print("\033[33mDisplaying Avatar Info in Local Database:\033[0m")
     for root, dirs, files in os.walk("VRCA"):
         for file in files:
             if file.endswith(".vrca"):
                 avatar_id = os.path.splitext(file)[0]
-                print(f"Avatar ID: {avatar_id}")
+                print(f"\033[93mAvatar ID: \033[92m{avatar_id}\033[0m")
 
 #research id in local database   
 def research_id_in_local_database(search_id):
@@ -458,6 +652,6 @@ def rickroll():
     url = 'https://youtu.be/a3Z7zEc7AXQ'
     wb.open(url)
 
-#VRChat API & our API
 if __name__ == "__main__":
+    #login_and_save_auth_cookie()
     main_menu()
