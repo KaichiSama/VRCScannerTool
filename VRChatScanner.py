@@ -595,6 +595,7 @@ def search_in_cache(search_id):
                     with open(filepath, 'r', encoding="utf-8", errors='ignore') as f:
                         data = f.read()
                         if search_id in data:
+                            print(f"{Fore.YELLOW}File Analysis: {Fore.LIGHTCYAN_EX}{filepath}{Style.RESET_ALL}", end="")
                             print(f"{datetime.datetime.now()} - ID {search_id} found in: {Fore.LIGHTCYAN_EX}{filepath}{Style.RESET_ALL}")
                             found_in_cache = True
                 except Exception as e:
