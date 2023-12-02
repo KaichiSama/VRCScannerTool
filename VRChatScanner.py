@@ -117,7 +117,7 @@ def advertise_kawaii_gang():
         time.sleep(2)
 
 #VERSION DU LOGICIEL :
-version = "1.0.8"
+version = "1.0.9"
 # Fancy Welcome
 def fancy_welcome(version, developers=None):
     if developers is None:
