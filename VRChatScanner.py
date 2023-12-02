@@ -10,6 +10,8 @@ import colorama
 import hashlib
 import base64
 import json
+import subprocess
+import pkg_resources
 import logging
 from getpass import getpass
 from collections import defaultdict
@@ -36,6 +38,33 @@ colorama.init()
 user_directory = os.path.expanduser("~")
 
 PATH = os.path.join(user_directory, "AppData", "LocalLow", "VRChat", "VRChat", "Cache-WindowsPlayer")
+
+def install_dependencies():
+    # Mettre à jour pip
+    subprocess.check_call([sys.executable, '-m', 'pip', 'install', '--upgrade', 'pip'])
+
+    # Liste des packages requis
+    required_packages = [
+        'colorama', 'requests', 'UnityPy', 'keyboard', 'vrchatapi',
+        # Ajoutez ici d'autres packages requis
+    ]
+
+    # Obtenir la liste des packages déjà installés
+    installed_packages = {pkg.key for pkg in pkg_resources.working_set}
+
+    # Identifier les packages manquants
+    missing_packages = [pkg for pkg in required_packages if pkg not in installed_packages]
+
+    # Installer les packages manquants
+    if missing_packages:
+        print("Installing missing packages:", ", ".join(missing_packages))
+        try:
+            subprocess.check_call([sys.executable, '-m', 'pip', 'install', *missing_packages])
+        except subprocess.CalledProcessError as e:
+            print(f"An error occurred while installing packages: {e}")
+            sys.exit(1)
+    else:
+        print("All required packages are already installed.")
 
 #VERSION DU LOGICIEL :
 version = "1.0.8"
@@ -653,5 +682,5 @@ def rickroll():
     wb.open(url)
 
 if __name__ == "__main__":
-    #login_and_save_auth_cookie()
+    login_and_save_auth_cookie()
     main_menu()
