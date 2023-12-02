@@ -27,10 +27,15 @@ You're all set! You can now enjoy your local database created with VRC Scanner T
 We'd love to hear from you! If you encounter any issues or have suggestions for improvements, please don't hesitate to reach out. Your feedback is essential in making this tool better.
 
 𝐃𝐢𝐬𝐜𝐨𝐫𝐝 : https://discord.gg/7KprcpxhEH // kaichisama
+
 𝐖𝐞𝐛𝐬𝐢𝐭𝐞 : https://www.etsy.com/shop/thekawaiisquad
+
 𝐈𝐧𝐬𝐭𝐚𝐠𝐫𝐚𝐦 : https://www.instagram.com/_thekawaiisquad_/
+
 𝐕𝐑𝐂𝐡𝐚𝐭 : https://vrchat.com/home/group/grp_39d054ad-6a23-4857-9c72-a32899f7846b
+
 Wallpaper : https://steamcommunity.com/sharedfiles/filedetails/?id=2981905773
+
 Thank you for using VRC Scanner Tool v1.0.8.1!
 
 \- Kaichi-Sama
