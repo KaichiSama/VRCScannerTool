@@ -1,6 +1,6 @@
 # VRC Scanner Tool v1.0.8.1 Release
 
-We're excited to announce the release of VRC Scanner Tool v1.0.8.1! This tool allows you to create and manage a local database for VRChat content. It's perfect for VRChat enthusiasts and creators who want to organize their content. 
+We're excited to announce the release of VRC Scanner Tool v1.0.8.1! This tool allows you to create and manage a local database for VRChat content. It's perfect for VRChat enthusiasts and creators who want to organize their content.
 
 ## Installation Instructions
 
@@ -16,7 +16,7 @@ Download the 'VRCScannerToolV1.0.8.1.zip' package from our [GitHub releases](htt
 
 ### Step 3: Run the Tool
 
-After you've installed the required tools and downloaded the package, run the 'Run me as Admin.bat' file. This will start the VRC Scanner Tool.
+After you've installed the required tools and downloaded the package, run the '<span style="color: purple;">Run me as Admin.bat</span>' file. This will start the VRC Scanner Tool.
 
 ### Step 4: Enjoy!
 
