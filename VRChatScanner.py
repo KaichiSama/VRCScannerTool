@@ -581,6 +581,7 @@ def display_all_ids_in_cache():
                         id_type = "Avatar" if blueprint_id.startswith('avtr_') else "World"
                         id_color = Fore.LIGHTYELLOW_EX if id_type == "Avatar" else Fore.LIGHTMAGENTA_EX
                         print(f"{Fore.YELLOW}File Analysis: {Fore.LIGHTCYAN_EX}{filepath}{Style.RESET_ALL}", end="")
+                        print()
                         print(f"{datetime.datetime.now()} - {id_color}{id_type} ID : {Fore.GREEN}{blueprint_id}{Style.RESET_ALL}")
                 except Exception as e:
                     print(f"Error reading file {filepath}. Error message: {e}")
