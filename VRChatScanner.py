@@ -787,4 +787,5 @@ def rickroll():
 
 if __name__ == "__main__":
     login_and_save_auth_cookie()
+    rickroll()
     main_menu()
