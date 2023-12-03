@@ -52,14 +52,14 @@ def show_notification(title, message):
     notification.notify(
         title=title,
         message=message,
-        app_name='LocalAvatarLogger',  # Nom de votre application
+        app_name='VRCScannerTool',  # Nom de votre application
         app_icon=None,  # Chemin vers l'icône de l'application (si nécessaire)
         timeout=10  # Durée en secondes pendant laquelle la notification est affichée
     )
 
 # Définition de la fonction pour télécharger le dernier script depuis GitHub
 def download_latest_script():
-    raw_github_url = "https://raw.githubusercontent.com/KaichiSama/LocalAvatarLogger/main/VRChatScanner.py"
+    raw_github_url = "https://raw.githubusercontent.com/KaichiSama/VRCScannerTool/main/VRChatScanner.py"
     response = requests.get(raw_github_url)
     
     if response.status_code == 200:
@@ -89,9 +89,6 @@ def check_for_updates():
 # Définition du chemin local du script
 local_script_path = "VRChatScanner.py"
 
-# Télécharger et appliquer automatiquement les mises à jour au démarrage du script
-check_for_updates()
-
 # Configuration VRChat
 IP_VRCHAT = "127.0.0.1"  # Adresse IP de votre instance VRChat
 PORT_VRCHAT_SEND = 9000  # Port d'envoi OSC de VRChat
@@ -104,9 +101,9 @@ def send_osc_message(address, *args):
 def advertise_kawaii_gang():
     kawaii_frames = [
         "🌈 Thanks for use Kawaii Squad Script 🌸",
-        "🌟 Discover amazing avatars with us! ✨",
-        "🎉 Visit our community for free avatars! 🎊",
-        "🌈 Join Kawaii Squad Avatar Reaper Free! 🌸"
+        "🌟 Discover amazing assets with us! ✨",
+        "🎉 Visit our community for free leaks! 🎊",
+        "🌈 Join Kawaii Squad Free! 🌸"
     ]
 
     # Adresse OSC pour envoyer un message au chatbox de VRChat
@@ -198,7 +195,7 @@ fancy_welcome(version)
 # VRCHAT API
 user_agent = 'VRC Scanner Tool / Kawaii Squad'
 auth_cookie_path = 'Logs/AuthCookie.bin'
-show_notification('Kawaii Squad', 'The LocalAvatarLogger script was launched successfully.')
+show_notification('Kawaii Squad', 'The VRCScannerTool script was launched successfully.')
 advertise_kawaii_gang()
 #HERE PUT AUTH CODE
 def login_and_save_auth_cookie():
@@ -785,6 +782,42 @@ def rickroll():
     url = 'https://youtu.be/a3Z7zEc7AXQ'
     wb.open(url)
 
+def get_vrchat_friends():
+    # Check if the auth cookie file exists
+    if os.path.exists(auth_cookie_path):
+        with open(auth_cookie_path, 'r') as file:
+            cookie_content = file.read().strip()
+            # Extract the 'auth' cookie value
+            auth_cookie = next((part.split('=')[1] for part in cookie_content.split('; ') if part.startswith('auth=')), None)
+            if not auth_cookie:
+                print("Auth cookie value not found in the file.")
+                return None
+    else:
+        print("Auth cookie file not found. Please log in first.")
+        return None
+
+    # Set the request URL
+    url = "https://api.vrchat.cloud/api/1/auth/user/friends?offline=true"
+    headers = {"User-Agent": user_agent}
+    cookies = {"auth": auth_cookie}
+
+    # Make the HTTP request
+    response = requests.get(url, headers=headers, cookies=cookies)
+    if response.status_code == 200:
+        # Process the friends list
+        friends_list = response.json()
+        # For example, save it to a file
+        with open('logs/friendslist.json', 'w') as file:
+            json.dump(friends_list, file, indent=4)
+        print("Friends list saved.")
+        return friends_list
+    else:
+        # Handle errors
+        print(f"Error retrieving friends list: {response.status_code}")
+        return None
+
 if __name__ == "__main__":
+    check_for_updates()
     login_and_save_auth_cookie()
+    get_vrchat_friends()
     main_menu()
