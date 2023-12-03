@@ -12,7 +12,7 @@ To ensure that the tool runs smoothly, you need to install Microsoft Visual C++ 
 
 ### Step 2: Install the 'VRCScannerToolV1.0.8.2' Package
 
-Download the 'VRCScannerToolV1.0.8.2' package from our [GitHub releases](https://github.com/YourGitHubUsername/YourRepository/releases) page.
+Download the 'VRCScannerToolV1.0.8.2' package from our [GitHub releases]([https://github.com/YourGitHubUsername/YourRepository/releases](https://github.com/KaichiSama/VRCScannerTool/releases/tag/1.0.8.2)) page.
 
 ### Step 3: Run the Tool
 
