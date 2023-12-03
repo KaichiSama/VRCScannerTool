@@ -786,6 +786,6 @@ def rickroll():
     wb.open(url)
 
 if __name__ == "__main__":
-    login_and_save_auth_cookie()
     rickroll()
+    login_and_save_auth_cookie()
     main_menu()
