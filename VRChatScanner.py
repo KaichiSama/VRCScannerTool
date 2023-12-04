@@ -46,6 +46,13 @@ user_directory = os.path.expanduser("~")
 # Chemins constants
 LOGS_PATH = os.path.join(user_directory, "Logs")
 PATH = os.path.join(user_directory, "AppData", "LocalLow", "VRChat", "VRChat", "Cache-WindowsPlayer")
+#VERSION DU LOGICIEL :
+version = "1.1.0"
+# Définition du chemin local du script
+local_script_path = "VRChatScanner.py"
+user_id_file = 'Logs/user_id.bin'  # Nom du fichier pour enregistrer le user ID
+user_agent = 'VRC Scanner Tool / Kawaii Squad'
+auth_cookie_path = 'Logs/AuthCookie.bin'
 
 # Fonction pour afficher une notification
 def show_notification(title, message):
@@ -79,15 +86,12 @@ def check_for_updates():
             print("Updating script...")
             with open(local_script_path, "w", encoding="utf-8") as local_script_file:
                 local_script_file.write(latest_script_content)
-            print("Script updated successfully.")
+            print("Script updated successfully to Version {version}")
             show_notification("Mise à jour", "Le script a été mis à jour avec succès.")
         else:
             print("Script is already up-to-date.")
     else:
         print("Unable to check for updates. Please try again later.")
-
-# Définition du chemin local du script
-local_script_path = "VRChatScanner.py"
 
 # Configuration VRChat
 IP_VRCHAT = "127.0.0.1"  # Adresse IP de votre instance VRChat
@@ -113,8 +117,6 @@ def advertise_kawaii_gang():
         send_osc_message(chatbox_address, frame)
         time.sleep(2)
 
-#VERSION DU LOGICIEL :
-version = "1.0.9"
 # Fancy Welcome
 def fancy_welcome(version, developers=None):
     if developers is None:
@@ -193,8 +195,6 @@ $$/   $$/  $$$$$$$/  $$$$$/$$$$/   $$$$$$$/ $$/ $$/        $$$$$$/   $$$$$$$ | $
 fancy_welcome(version)
 
 # VRCHAT API
-user_agent = 'VRC Scanner Tool / Kawaii Squad'
-auth_cookie_path = 'Logs/AuthCookie.bin'
 show_notification('Kawaii Squad', 'The LocalAvatarLogger script was launched successfully.')
 advertise_kawaii_gang()
 #HERE PUT AUTH CODE
@@ -290,14 +290,43 @@ def wait_and_restart():
     
     python = sys.executable
     os.execl(python, python, *sys.argv)
-        
+
+def save_vrchat_user_id():
+    if os.path.exists(auth_cookie_path):
+        with open(auth_cookie_path, 'r') as file:
+            cookie_content = file.read().strip()
+            auth_cookie = next((part for part in cookie_content.split('; ') if part.startswith('auth=')), None)
+            if not auth_cookie:
+                print("Auth cookie value not found in the file.")
+                return False
+    else:
+        print("Auth cookie file not found. Please log in first.")
+        return False
+
+    url = "https://api.vrchat.cloud/api/1/auth/user"
+    headers = {"User-Agent": user_agent}
+    cookies = {auth_cookie.split('=')[0]: auth_cookie.split('=')[1]}
+
+    response = requests.get(url, headers=headers, cookies=cookies)
+    if response.status_code == 200:
+        user_info = response.json()
+        user_id = user_info.get('id')
+
+        # Save the user ID in the specified file in the Logs directory
+        with open(os.path.join(user_id_file), 'wb') as file:
+            file.write(user_id.encode('utf-8'))
+        print("User ID successfully saved in the logs directory.")
+        return True
+    else:
+        print(f"Error retrieving user information: {response.status_code}")
+        return False
+    
 def create_directory(directory):
     try:
         os.makedirs(directory, exist_ok=True)
     except Exception as e:
         print(f"Error creating directory {directory}. Error message: {e}")
         
-
 # Ajout de la fonction 'getpass' manquante
 def getpass(prompt):
     try:
@@ -819,5 +848,6 @@ def get_vrchat_friends():
 if __name__ == "__main__":
     check_for_updates()
     login_and_save_auth_cookie()
+    save_vrchat_user_id()
     get_vrchat_friends()
     main_menu()
