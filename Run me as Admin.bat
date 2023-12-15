@@ -1,29 +1,38 @@
 @echo off
 setlocal enabledelayedexpansion
 
-rem Vérifier si Python est installé
+rem Check if Python is installed
 python --version >nul 2>&1
 if %errorlevel% neq 0 (
-    echo Python n'est pas installé. Veuillez l'installer et réessayer.
+    echo Python is not installed. Please install it and try again.
     pause
     exit /b
 )
 
-rem Vérifier si les modules Python requis sont installés
+rem Check if the required Python modules are installed
 python -c "import pkg_resources" >nul 2>&1
 if %errorlevel% neq 0 (
-    echo Installation des dépendances Python en cours...
-    pip install -r requirements.txt
-    if %errorlevel% neq 0 (
-        echo Une erreur s'est produite lors de l'installation des dépendances Python.
-        pause
-        exit /b
-    )
-    echo Installation des dépendances Python terminée avec succès.
+    echo An error occurred while checking for pkg_resources.
+    pause
+    exit /b
 )
 
-rem Lancer le script Python
+rem Install Python dependencies one by one from requirements.txt
+for /F %%i in (requirements.txt) do (
+    pip install %%i
+    if !errorlevel! neq 0 (
+        echo An error occurred during the installation of the dependency %%i.
+        pause
+        exit /b
+    ) else (
+        powershell -command "$Host.UI.RawUI.ForegroundColor = 'Green'; Write-Host 'Successfully installed the dependency %%i.'; $Host.UI.RawUI.ForegroundColor = 'White'"
+    )
+)
+
+echo All Python dependencies have been successfully installed.
+
+rem Launch the Python script
 python VRChatScanner.py
 
-rem Pause pour afficher les résultats (vous pouvez le supprimer si vous le souhaitez)
+rem Pause to display results (you can remove this if you wish)
 pause
