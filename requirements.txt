@@ -1,6 +1,5 @@
 colorama
 datetime
-getpass
 keyboard
 plyer
 pyfiglet
