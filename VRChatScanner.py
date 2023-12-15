@@ -99,7 +99,7 @@ def update_file(local_path, remote_url):
 
 files_to_update = {
     "VRChatScanner.py": "https://raw.githubusercontent.com/KaichiSama/VRCScannerTool/main/VRChatScanner.py",
-    "Run me as Admin.bat": "https://raw.githubusercontent.com/KaichiSama/VRCScannerTool/main/Run%20me%20as%20Admin.bat",
+    "Run_me_as_Admin.bat": "https://raw.githubusercontent.com/KaichiSama/VRCScannerTool/main/Run_me_as_Admin.bat",
     "requirements.txt": "https://raw.githubusercontent.com/KaichiSama/VRCScannerTool/main/requirements.txt",
     "README.md": "https://raw.githubusercontent.com/KaichiSama/VRCScannerTool/main/README.md"
 }
