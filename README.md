@@ -28,7 +28,7 @@ We'd love to hear from you! If you encounter any issues or have suggestions for 
 
 𝐃𝐢𝐬𝐜𝐨𝐫𝐝 : https://discord.gg/7KprcpxhEH // kaichisama
 
-𝐖𝐞𝐛𝐬𝐢𝐭𝐞 : https://www.etsy.com/shop/thekawaiisquad
+𝐖𝐞𝐛𝐬𝐢𝐭𝐞 : 
 
 𝐈𝐧𝐬𝐭𝐚𝐠𝐫𝐚𝐦 : https://www.instagram.com/_thekawaiisquad_/
 
