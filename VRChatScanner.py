@@ -68,7 +68,8 @@ def show_notification(title, message):
 def download_file(url):
     response = requests.get(url)
     if response.status_code == 200:
-        return response.text
+        # Normalisez les sauts de ligne pour une comparaison cohérente
+        return response.text.replace('\r\n', '\n').strip()
     else:
         print(f"Failed to download file from {url}. Status code: {response.status_code}")
         return None
@@ -77,19 +78,27 @@ def update_file(local_path, remote_url):
     latest_content = download_file(remote_url)
     update_made = False
 
-    if latest_content:
+    if latest_content is not None:
         try:
             with open(local_path, "r", encoding="utf-8") as local_file:
-                local_content = local_file.read()
+                local_content = local_file.read().replace('\r\n', '\n').strip()
         except FileNotFoundError:
             local_content = None
+
+        # Journalisation pour le débogage
+        print(f"Comparing local and downloaded content for {local_path}...")
 
         if local_content != latest_content:
             print(f"Updating {local_path}...")
             with open(local_path, "w", encoding="utf-8") as local_file:
                 local_file.write(latest_content)
-            print(f"{local_path} updated successfully.")
-            update_made = True
+            # Relecture pour confirmer l'écriture
+            with open(local_path, "r", encoding="utf-8") as local_file:
+                if local_file.read().replace('\r\n', '\n').strip() == latest_content:
+                    print(f"{local_path} updated successfully.")
+                    update_made = True
+                else:
+                    print(f"Failed to update {local_path}.")
         else:
             print(f"{local_path} is already up-to-date.")
     else:
@@ -112,8 +121,11 @@ def check_for_updates():
 
     return updates_made
 
-if check_for_updates():
-    print("Restarting the script...")
+# Vérifie si des mises à jour ont été effectuées
+updates_made = check_for_updates()
+
+if updates_made:
+    print("Updates were made. Restarting the script...")
     os.execv(sys.executable, ['python'] + sys.argv)
 else:
     print("No updates were made. Continuing normal operation.")
