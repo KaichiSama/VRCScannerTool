@@ -64,11 +64,12 @@ def show_notification(title, message):
         timeout=10  # Durée en secondes pendant laquelle la notification est affichée
     )
 
-# Définition de la fonction pour télécharger le dernier script depuis GitHub
+# Ajoutez un argument de ligne de commande pour contrôler la vérification des mises à jour
+check_updates_flag = "--check-updates"
+
 def download_file(url):
     response = requests.get(url)
     if response.status_code == 200:
-        # Normalisez les sauts de ligne pour une comparaison cohérente
         return response.text.replace('\r\n', '\n').strip()
     else:
         print(f"Failed to download file from {url}. Status code: {response.status_code}")
@@ -85,20 +86,12 @@ def update_file(local_path, remote_url):
         except FileNotFoundError:
             local_content = None
 
-        # Journalisation pour le débogage
-        print(f"Comparing local and downloaded content for {local_path}...")
-
         if local_content != latest_content:
             print(f"Updating {local_path}...")
             with open(local_path, "w", encoding="utf-8") as local_file:
                 local_file.write(latest_content)
-            # Relecture pour confirmer l'écriture
-            with open(local_path, "r", encoding="utf-8") as local_file:
-                if local_file.read().replace('\r\n', '\n').strip() == latest_content:
-                    print(f"{local_path} updated successfully.")
-                    update_made = True
-                else:
-                    print(f"Failed to update {local_path}.")
+            update_made = True
+            print(f"{local_path} updated successfully.")
         else:
             print(f"{local_path} is already up-to-date.")
     else:
@@ -113,22 +106,28 @@ files_to_update = {
     "README.md": "https://raw.githubusercontent.com/KaichiSama/VRCScannerTool/main/README.md"
 }
 
-def check_for_updates():
+def check_for_updates(force_check=False):
     updates_made = False
-    for local_path, remote_url in files_to_update.items():
-        if update_file(local_path, remote_url):
-            updates_made = True
-
+    if force_check:
+        for local_path, remote_url in files_to_update.items():
+            if update_file(local_path, remote_url):
+                updates_made = True
     return updates_made
 
-# Vérifie si des mises à jour ont été effectuées
-updates_made = check_for_updates()
+# Vérifiez si l'argument --check-updates est présent
+force_check_updates = check_updates_flag in sys.argv
 
-if updates_made:
-    print("Updates were made. Restarting the script...")
-    os.execv(sys.executable, ['python'] + sys.argv)
+# Si l'argument est présent ou si c'est le premier lancement, vérifiez les mises à jour
+if force_check_updates or len(sys.argv) == 1:
+    updates_made = check_for_updates(force_check=True)
+
+    if updates_made:
+        print("Updates were made. Restarting the script...")
+        os.execv(sys.executable, ['python'] + sys.argv[:1] + [check_updates_flag])
+    else:
+        print("No updates were made. Continuing normal operation.")
 else:
-    print("No updates were made. Continuing normal operation.")
+    print("Skipping update check on restart. Continuing with the rest of the script.")
 # Configuration VRChat
 IP_VRCHAT = "127.0.0.1"  # Adresse IP de votre instance VRChat
 PORT_VRCHAT_SEND = 9000  # Port d'envoi OSC de VRChat
