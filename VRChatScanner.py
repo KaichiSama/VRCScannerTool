@@ -75,6 +75,7 @@ def download_file(url):
 
 def update_file(local_path, remote_url):
     latest_content = download_file(remote_url)
+    update_made = False
 
     if latest_content:
         try:
@@ -88,13 +89,14 @@ def update_file(local_path, remote_url):
             with open(local_path, "w", encoding="utf-8") as local_file:
                 local_file.write(latest_content)
             print(f"{local_path} updated successfully.")
-            # Add your notification function here if needed
+            update_made = True
         else:
             print(f"{local_path} is already up-to-date.")
     else:
         print(f"Unable to check for updates for {local_path}. Please try again later.")
+    
+    return update_made
 
-# Paths and URLs for each file
 files_to_update = {
     "VRChatScanner.py": "https://raw.githubusercontent.com/KaichiSama/VRCScannerTool/main/VRChatScanner.py",
     "Run me as Admin.bat": "https://raw.githubusercontent.com/KaichiSama/VRCScannerTool/main/Run%20me%20as%20Admin.bat",
@@ -103,8 +105,18 @@ files_to_update = {
 }
 
 def check_for_updates():
+    updates_made = False
     for local_path, remote_url in files_to_update.items():
-        update_file(local_path, remote_url)
+        if update_file(local_path, remote_url):
+            updates_made = True
+
+    return updates_made
+
+if check_for_updates():
+    print("Restarting the script...")
+    os.execv(sys.executable, ['python'] + sys.argv)
+else:
+    print("No updates were made. Continuing normal operation.")
 # Configuration VRChat
 IP_VRCHAT = "127.0.0.1"  # Adresse IP de votre instance VRChat
 PORT_VRCHAT_SEND = 9000  # Port d'envoi OSC de VRChat
