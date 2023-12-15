@@ -65,34 +65,46 @@ def show_notification(title, message):
     )
 
 # Définition de la fonction pour télécharger le dernier script depuis GitHub
-def download_latest_script():
-    raw_github_url = "https://raw.githubusercontent.com/KaichiSama/VRCScannerTool/main/VRChatScanner.py"
-    response = requests.get(raw_github_url)
-    
+def download_file(url):
+    response = requests.get(url)
     if response.status_code == 200:
         return response.text
     else:
-        print(f"Failed to download the latest script. Status code: {response.status_code}")
+        print(f"Failed to download file from {url}. Status code: {response.status_code}")
         return None
 
-def check_for_updates():
-    latest_script_content = download_latest_script()
+def update_file(local_path, remote_url):
+    latest_content = download_file(remote_url)
 
-    if latest_script_content:
-        with open(local_script_path, "r", encoding="utf-8") as local_script_file:
-            local_script_content = local_script_file.read()
+    if latest_content:
+        try:
+            with open(local_path, "r", encoding="utf-8") as local_file:
+                local_content = local_file.read()
+        except FileNotFoundError:
+            local_content = None
 
-        if local_script_content != latest_script_content:
-            print("Updating script...")
-            with open(local_script_path, "w", encoding="utf-8") as local_script_file:
-                local_script_file.write(latest_script_content)
-            print("Script updated successfully to Version {version}")
-            show_notification("Mise à jour", "Le script a été mis à jour avec succès.")
+        if local_content != latest_content:
+            print(f"Updating {local_path}...")
+            with open(local_path, "w", encoding="utf-8") as local_file:
+                local_file.write(latest_content)
+            print(f"{local_path} updated successfully.")
+            # Add your notification function here if needed
         else:
-            print("Script is already up-to-date.")
+            print(f"{local_path} is already up-to-date.")
     else:
-        print("Unable to check for updates. Please try again later.")
+        print(f"Unable to check for updates for {local_path}. Please try again later.")
 
+# Paths and URLs for each file
+files_to_update = {
+    "VRChatScanner.py": "https://raw.githubusercontent.com/KaichiSama/VRCScannerTool/main/VRChatScanner.py",
+    "Run me as Admin.bat": "https://raw.githubusercontent.com/KaichiSama/VRCScannerTool/main/Run%20me%20as%20Admin.bat",
+    "requirements.txt": "https://raw.githubusercontent.com/KaichiSama/VRCScannerTool/main/requirements.txt",
+    "README.md": "https://raw.githubusercontent.com/KaichiSama/VRCScannerTool/main/README.md"
+}
+
+def check_for_updates():
+    for local_path, remote_url in files_to_update.items():
+        update_file(local_path, remote_url)
 # Configuration VRChat
 IP_VRCHAT = "127.0.0.1"  # Adresse IP de votre instance VRChat
 PORT_VRCHAT_SEND = 9000  # Port d'envoi OSC de VRChat
