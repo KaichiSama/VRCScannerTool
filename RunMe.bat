@@ -2,9 +2,19 @@
 setlocal enabledelayedexpansion
 
 rem Check if Python is installed
-python --version >nul 2>&1
+python3 --version >nul 2>&1
 if %errorlevel% neq 0 (
     echo Python is not installed. Please install it and try again.
+    echo Download Python by pressing Enter.
+    pause >nul
+    start "" "https://apps.microsoft.com/detail/9NCVDN91XZQP?ocid=pdpshare&hl=en-us&gl=US"
+    exit /b
+)
+
+rem Install setuptools if not already installed
+python -m pip install setuptools >nul 2>&1
+if %errorlevel% neq 0 (
+    echo An error occurred during the installation of setuptools.
     pause
     exit /b
 )
