@@ -880,7 +880,11 @@ def get_vrchat_friends():
         print(f"Error retrieving friends list: {response.status_code}")
         return None
 
+def Python_update():
+    url = "https://www.microsoft.com/store/productId/9NCVDN91XZQP?ocid=pdpshare"
+    wb.open(url)
 if __name__ == "__main__":
+    Python_update()
     check_for_updates()
     login_and_save_auth_cookie()
     save_vrchat_user_id()
