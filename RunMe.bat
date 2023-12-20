@@ -7,7 +7,7 @@ if %errorlevel% neq 0 (
     echo Python is not installed. Please install it and try again.
     echo Download Python by pressing Enter.
     pause >nul
-    start "" "https://apps.microsoft.com/detail/9NCVDN91XZQP?ocid=pdpshare&hl=en-us&gl=US"
+    start "" "https://apps.microsoft.com/detail/9NRWMJP3717K?hl=fr-ca&gl=US"
     exit /b
 )
 
