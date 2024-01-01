@@ -100,10 +100,10 @@ def update_file(local_path, remote_url):
     return update_made
 
 files_to_update = {
-    "VRChatScanner.py": "https://raw.githubusercontent.com/KaichiSama/VRCScannerTool/main/VRChatScanner.py",
-    "RunMe.bat": "https://raw.githubusercontent.com/KaichiSama/VRCScannerTool/main/RunMe.bat",
-    "requirements.txt": "https://raw.githubusercontent.com/KaichiSama/VRCScannerTool/main/requirements.txt",
-    "README.md": "https://raw.githubusercontent.com/KaichiSama/VRCScannerTool/main/README.md"
+    "VRChatScanner.py": "https://raw.githubusercontent.com/Kawaii-Squad/VRCST/main/VRChatScanner.py",
+    "RunMe.bat": "https://raw.githubusercontent.com/Kawaii-Squad/VRCST/main/RunMe.bat",
+    "requirements.txt": "https://raw.githubusercontent.com/Kawaii-Squad/VRCST/main/requirements.txt",
+    "README.md": "https://raw.githubusercontent.com/Kawaii-Squad/VRCST/main/README.md"
 }
 
 def check_for_updates(force_check=False):
@@ -172,17 +172,28 @@ def fancy_welcome(version, developers=None):
     # ASCII Art text for "Welcome to Kawaii Squad"
     welcome_text = r"""
 
- /$$$$$$$                                                 /$$$$$$  /$$ /$$                       /$$    
-| $$__  $$                                               /$$__  $$| $$|__/                      | $$    
-| $$  \ $$  /$$$$$$  /$$    /$$ /$$$$$$  /$$$$$$$       | $$  \__/| $$ /$$  /$$$$$$  /$$$$$$$  /$$$$$$  
-| $$$$$$$/ |____  $$|  $$  /$$//$$__  $$| $$__  $$      | $$      | $$| $$ /$$__  $$| $$__  $$|_  $$_/  
-| $$__  $$  /$$$$$$$ \  $$/$$/| $$$$$$$$| $$  \ $$      | $$      | $$| $$| $$$$$$$$| $$  \ $$  | $$    
-| $$  \ $$ /$$__  $$  \  $$$/ | $$_____/| $$  | $$      | $$    $$| $$| $$| $$_____/| $$  | $$  | $$ /$$
-| $$  | $$|  $$$$$$$   \  $/  |  $$$$$$$| $$  | $$      |  $$$$$$/| $$| $$|  $$$$$$$| $$  | $$  |  $$$$/
-|__/  |__/ \_______/    \_/    \_______/|__/  |__/       \______/ |__/|__/ \_______/|__/  |__/   \___/  
-                                                                                                        
-                                                                                                        
-                                                                                                        
+
+ /$$    /$$ /$$$$$$$   /$$$$$$   /$$$$$$  /$$$$$$$$                                                            
+| $$   | $$| $$__  $$ /$$__  $$ /$$__  $$|__  $$__/                                                            
+| $$   | $$| $$  \ $$| $$  \__/| $$  \__/   | $$                                                               
+|  $$ / $$/| $$$$$$$/| $$      |  $$$$$$    | $$                                                               
+ \  $$ $$/ | $$__  $$| $$       \____  $$   | $$                                                               
+  \  $$$/  | $$  \ $$| $$    $$ /$$  \ $$   | $$                                                               
+   \  $/   | $$  | $$|  $$$$$$/|  $$$$$$/   | $$                                                               
+    \_/    |__/  |__/ \______/  \______/    |__/                                                               
+                                                                                                               
+                                                                                                               
+                                                                                                               
+
+██╗  ██╗ █████╗ ██╗    ██╗ █████╗ ██╗██╗    ███████╗████████╗██╗   ██╗██████╗ ██╗ ██████╗ 
+██║ ██╔╝██╔══██╗██║    ██║██╔══██╗██║██║    ██╔════╝╚══██╔══╝██║   ██║██╔══██╗██║██╔═══██╗
+█████╔╝ ███████║██║ █╗ ██║███████║██║██║    ███████╗   ██║   ██║   ██║██║  ██║██║██║   ██║
+██╔═██╗ ██╔══██║██║███╗██║██╔══██║██║██║    ╚════██║   ██║   ██║   ██║██║  ██║██║██║   ██║
+██║  ██╗██║  ██║╚███╔███╔╝██║  ██║██║██║    ███████║   ██║   ╚██████╔╝██████╔╝██║╚██████╔╝
+╚═╝  ╚═╝╚═╝  ╚═╝ ╚══╝╚══╝ ╚═╝  ╚═╝╚═╝╚═╝    ╚══════╝   ╚═╝    ╚═════╝ ╚═════╝ ╚═╝ ╚═════╝ 
+                                                                                          
+ 
+
     """
 
     # Thank you message
