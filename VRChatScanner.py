@@ -45,7 +45,13 @@ user_directory = os.path.expanduser("~")
 
 # Chemins constants
 LOGS_PATH = os.path.join(user_directory, "Logs")
-PATH = os.path.join(user_directory, "AppData", "LocalLow", "VRChat", "VRChat", "Cache-WindowsPlayer")
+VRCHAT_PATH = os.path.join(user_directory, "AppData", "LocalLow", "VRChat", "VRChat")
+try:
+    VRCHAT_CONFIG = os.path.join(VRCHAT_PATH, "config.json")
+    with open(VRCHAT_CONFIG, "r", encoding="utf-8") as f:
+        PATH = os.path.join(json.load(f)["cache_directory"], "Cache-WindowsPlayer")
+except (FileNotFoundError, KeyError):
+    PATH = os.path.join(user_directory, "AppData", "LocalLow", "VRChat", "VRChat", "Cache-WindowsPlayer")
 #VERSION DU LOGICIEL :
 version = "1.1.0"
 # Définition du chemin local du script
